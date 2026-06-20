@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>LVA — Saisie Commandes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  :root {
+    --navy: #0B1F3A;
+    --navy2: #132B48;
+    --navy3: #1a3550;
+    --steel: #2D4A6E;
+    --gold: #C9A84C;
+    --gold2: #e8c76a;
+    --white: #F5F7FA;
+    --muted: #8A99AE;
+    --green: #1DB87A;
+    --red: #E03E3E;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    padding: 0 0 40px;
+    animation: fadeIn .3s ease;
+  }
+  .screen.active { display: flex; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+  /* ── HEADER ── */
+  .top-bar {
+    width: 100%;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 18px 24px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo-text { font-size: 24px; font-weight: 900; color: var(--gold); letter-spacing: 3px; }
+  .logo-sub { font-size: 9px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+  .step-indicator {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    background: var(--navy3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--steel);
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    width: 100%;
+    height: 3px;
+    background: var(--navy3);
+  }
+  .progress-bar {
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold2));
+    transition: width .4s ease;
+  }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    width: 100%;
+    padding: 28px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .screen-question {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    text-align: center;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .screen-sub {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  /* ── VENDOR GRID ── */
+  .vendor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .vendor-btn {
+    background: var(--navy2);
+    border: 2px solid var(--steel);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+  }
+  .vendor-btn:hover, .vendor-btn:active { background: var(--steel); border-color: var(--gold); color: var(--gold); transform: scale(0.97); }
+  .vendor-site-label {
+    font-size: 10px;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 24px;
+    margin-bottom: 8px;
+    width: 100%;
+    text-align: left;
+    padding-left: 4px;
+    grid-column: 1 / -1;
+  }
+
+  /* ── TYPE CARDS (VN/VD/VO) ── */
+  .type-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+  .type-card {
+    background: var(--navy2);
+    border: 2px solid var(--steel);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .type-card:active { transform: scale(0.97); }
+  .type-card.vn:hover, .type-card.vn:active { border-color: #5aaeff; background: #0f2540; }
+  .type-card.vd:hover, .type-card.vd:active { border-color: var(--gold); background: #1a1500; }
+  .type-card.vo:hover, .type-card.vo:active { border-color: var(--green); background: #0a2018; }
+  .type-icon { font-size: 32px; }
+  .type-info { flex: 1; }
+  .type-name { font-size: 18px; font-weight: 800; }
+  .type-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .type-card.vn .type-name { color: #5aaeff; }
+  .type-card.vd .type-name { color: var(--gold); }
+  .type-card.vo .type-name { color: var(--green); }
+  .type-card.vom .type-name { color: #b388ff; }
+  .type-card.vom:hover, .type-card.vom:active { border-color: #b388ff; background: #1a0d2e; }
+
+  /* ── BRAND LOGOS ── */
+  .brand-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: 100%;
+  }
+  .brand-card {
+    background: var(--navy2);
+    border: 2px solid var(--steel);
+    border-radius: var(--radius);
+    padding: 28px 12px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+  }
+  .brand-card:active { transform: scale(0.95); border-color: var(--gold); background: var(--navy3); }
+  .brand-text-logo {
+    font-size: 28px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 3px;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* Logos SVG inline pour les marques */
+  .logo-kia { fill: #bb162b; }
+  .logo-mg { fill: #cc0000; }
+  .logo-mazda { fill: #1c1c1c; }
+  .logo-omoda { fill: #0055a5; }
+
+  /* ── YES/NO BUTTONS ── */
+  .yesno-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .yn-btn {
+    width: 100%;
+    padding: 22px;
+    border-radius: var(--radius);
+    border: 2px solid var(--steel);
+    background: var(--navy2);
+    color: var(--white);
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .yn-btn.yes:active, .yn-btn.yes:hover { background: #0d3a25; border-color: var(--green); color: var(--green); }
+  .yn-btn.no:active, .yn-btn.no:hover { background: #3a0d0d; border-color: var(--red); color: var(--red); }
+
+  /* ── MOIS GRID ── */
+  .mois-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+  .mois-btn {
+    background: var(--navy2);
+    border: 2px solid var(--steel);
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    transition: all .2s;
+  }
+  .mois-btn:active, .mois-btn.selected { background: var(--steel); border-color: var(--gold); color: var(--gold); }
+
+  /* ── STOCK BUTTONS ── */
+  .stock-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+  .stock-btn {
+    width: 100%;
+    padding: 24px;
+    border-radius: var(--radius);
+    border: 2px solid var(--steel);
+    background: var(--navy2);
+    color: var(--white);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .stock-btn:active { transform: scale(0.97); border-color: var(--gold); }
+  .stock-icon { font-size: 28px; }
+
+  /* ── TEXT INPUT ── */
+  .text-input-wrap { width: 100%; }
+  .text-field {
+    width: 100%;
+    background: var(--navy2);
+    border: 2px solid var(--steel);
+    border-radius: var(--radius);
+    color: var(--white);
+    font-size: 18px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    padding: 20px 18px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .text-field:focus { border-color: var(--gold); }
+  .text-field::placeholder { color: var(--steel); font-weight: 400; }
+  .input-hint { font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  .next-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 18px;
+    background: var(--gold);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--navy);
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .5px;
+  }
+  .next-btn:active { background: var(--gold2); transform: scale(0.98); }
+  .next-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── RÉCAP ── */
+  .recap-card {
+    width: 100%;
+    background: var(--navy2);
+    border: 1px solid var(--steel);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .recap-header {
+    background: var(--gold);
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .recap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--navy3);
+  }
+  .recap-row:last-child { border-bottom: none; }
+  .recap-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .recap-value { font-size: 14px; color: var(--white); font-weight: 700; text-align: right; }
+  .badge-vn { color: #5aaeff; }
+  .badge-vd { color: var(--gold); }
+  .badge-vo { color: var(--green); }
+  .badge-vom { color: #b388ff; }
+
+  .btn-valider {
+    width: 100%;
+    padding: 18px;
+    background: var(--green);
+    border: none;
+    border-radius: var(--radius);
+    color: white;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .btn-corriger {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: 2px solid var(--red);
+    border-radius: var(--radius);
+    color: var(--red);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+
+  /* ── FÉLICITATIONS ── */
+  .congrats-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .congrats-emoji { font-size: 72px; margin-bottom: 24px; animation: bounce .6s ease; }
+  @keyframes bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+  .congrats-title { font-size: 26px; font-weight: 900; color: var(--gold); margin-bottom: 12px; }
+  .congrats-msg { font-size: 15px; color: var(--muted); line-height: 1.6; margin-bottom: 36px; }
+  .btn-autre {
+    width: 100%;
+    padding: 18px;
+    background: var(--gold);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--navy);
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .btn-fin {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: 2px solid var(--steel);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+
+  /* ── ÉCRAN FIN ── */
+  .fin-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 32px 24px;
+  }
+  .fin-logo { font-size: 52px; font-weight: 900; color: var(--gold); letter-spacing: 6px; margin-bottom: 8px; }
+  .fin-sub { font-size: 11px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 32px; }
+  .fin-msg { font-size: 18px; color: var(--white); font-weight: 600; line-height: 1.6; margin-bottom: 40px; }
+  .fin-gold-line { width: 60px; height: 3px; background: var(--gold); margin: 0 auto 32px; border-radius: 2px; }
+
+  /* ── STATS SCREEN ── */
+  .stats-nav {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    padding: 14px 20px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .stats-nav::-webkit-scrollbar { display: none; }
+  .snav-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--steel);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .snav-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+
+  .stats-content { width: 100%; padding: 16px 20px; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .kpi-box {
+    background: var(--navy2);
+    border: 1px solid var(--steel);
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .kpi-num { font-size: 26px; font-weight: 900; color: var(--gold); }
+  .kpi-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  .marge-box {
+    background: var(--navy2);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .marge-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .marge-val { font-size: 20px; font-weight: 900; }
+
+  .section-title-stats {
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title-stats::after { content:''; flex:1; height:1px; background:var(--steel); }
+
+  .vendeur-row {
+    background: var(--navy2);
+    border: 1px solid var(--navy3);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .vendeur-avatar {
+    width: 36px; height: 36px;
+    background: var(--steel);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: var(--gold);
+    flex-shrink: 0;
+  }
+  .vendeur-name { font-size: 13px; font-weight: 700; flex: 1; }
+  .vendeur-chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 10px; border: 1px solid;
+  }
+  .chip-total { background:#1a3050; color:#5aaeff; border-color:#2d5a9e; }
+  .chip-vn { background:#1a2a4a; color:#7ab8ff; border-color:#1a3a6e; }
+  .chip-vo { background:#1a2a3a; color:#8AB4D8; border-color:#2D4A6E; }
+  .chip-fin { background:#0d3a25; color:var(--green); border-color:#1a6040; }
+  .chip-rep { background:#3a2a00; color:var(--gold); border-color:#6a5010; }
+  .chip-ent { background:#0d2238; color:#7EB8F5; border-color:#1a3a5a; }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-select {
+    flex: 1;
+    min-width: 120px;
+    background: var(--navy2);
+    border: 1px solid var(--steel);
+    border-radius: 10px;
+    color: var(--white);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    padding: 10px 12px;
+    outline: none;
+    color-scheme: dark;
+  }
+
+  /* ── FAB accès stats ── */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(201,168,76,.4);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  /* ── MARGE INPUT ── */
+  .marge-input-wrap {
+    width: 100%;
+    position: relative;
+  }
+  .marge-currency {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gold);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── PRINT / PDF ── */
+  @media print {
+    body { background: white !important; color: #111 !important; }
+    .screen { display: none !important; }
+    #print-zone { display: block !important; }
+    .no-print { display: none !important; }
+  }
+  #print-zone {
+    display: none;
+    font-family: 'Inter', sans-serif;
+    padding: 24px;
+    color: #111;
+    background: white;
+  }
+  .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #C9A84C;
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+  }
+  .pdf-logo { font-size: 28px; font-weight: 900; color: #0B1F3A; letter-spacing: 4px; }
+  .pdf-sub  { font-size: 10px; color: #888; letter-spacing: 2px; text-transform: uppercase; }
+  .pdf-title { font-size: 14px; font-weight: 700; color: #0B1F3A; text-align: right; }
+  .pdf-periode { font-size: 11px; color: #888; text-align: right; margin-top: 2px; }
+  .pdf-vendeur-name { font-size: 20px; font-weight: 900; color: #0B1F3A; margin-bottom: 4px; }
+  .pdf-site { font-size: 12px; color: #666; margin-bottom: 20px; }
+  .pdf-kpis { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .pdf-kpi { border: 2px solid #e0e0e0; border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 70px; }
+  .pdf-kpi-num { font-size: 22px; font-weight: 900; color: #0B1F3A; }
+  .pdf-kpi-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .pdf-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .pdf-table th { background: #0B1F3A; color: #C9A84C; padding: 9px 10px; text-align: left; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+  .pdf-table td { padding: 10px 10px; border-bottom: 1px solid #eee; color: #222; }
+  .pdf-table tr:nth-child(even) td { background: #f9f9f9; }
+  .pdf-table .pdf-total td { background: #0B1F3A; color: #C9A84C; font-weight: 800; border-top: 2px solid #C9A84C; }
+  .pdf-footer { margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #aaa; text-align: center; }
+  .pdf-pos { color: #1DB87A; font-weight: 700; }
+  .pdf-neg { color: #E03E3E; font-weight: 700; }
+
+  /* ── TABLEAU DÉTAIL VENDEUR ── */
+  .detail-header {
+    background: var(--navy2);
+    border: 1px solid var(--steel);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .detail-avatar {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--steel), var(--navy3));
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: var(--gold);
+    flex-shrink: 0;
+  }
+  .detail-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .detail-kpi {
+    background: var(--navy2);
+    border: 1px solid var(--steel);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .detail-kpi-num { font-size: 22px; font-weight: 900; }
+  .detail-kpi-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+
+  .detail-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--steel); }
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 360px;
+  }
+  .detail-table th {
+    background: #0B1F3A;
+    color: #C9A84C;
+    padding: 10px 10px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #C9A84C;
+    white-space: nowrap;
+  }
+  .detail-table td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #ddd;
+    color: #111111;
+    vertical-align: middle;
+    background: white;
+  }
+  .detail-table tr:nth-child(even) td { background: #f9f9f9; }
+  .detail-table tr:last-child td { border-bottom: none; }
+  .detail-table tr:hover td { background: rgba(45,74,110,.2); }
+  .detail-table .total-row td {
+    background: #0B1F3A !important;
+    color: #C9A84C !important;
+    font-weight: 800;
+    font-size: 12px;
+    border-top: 2px solid #C9A84C;
+  }
+  .ck { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SCREEN 0 — ACCUEIL / CHOIX VENDEUR
+════════════════════════════════════════════ -->
+<div class="screen active" id="s-vendeur">
+  <div class="top-bar" style="justify-content:center;padding:12px 20px">
+    <svg viewBox="0 0 480 100" xmlns="http://www.w3.org/2000/svg" style="width:240px;height:50px">
+      <!-- LVA monogramme -->
+      <g fill="white" font-family="Arial Black,sans-serif">
+        <text x="0" y="78" font-size="85" font-weight="900" letter-spacing="-5">L</text>
+        <text x="52" y="78" font-size="85" font-weight="900" letter-spacing="-5">V</text>
+        <text x="108" y="78" font-size="85" font-weight="900" letter-spacing="-5">A</text>
+      </g>
+      <!-- Séparateur vertical -->
+      <rect x="175" y="10" width="3" height="80" fill="#C9A84C" rx="1"/>
+      <!-- LITTORAL + VENDEE AUTOMOBILES -->
+      <g fill="white" font-family="Arial,sans-serif">
+        <text x="188" y="45" font-size="28" font-weight="900" letter-spacing="2">LITTORAL</text>
+        <line x1="188" y1="52" x2="470" y2="52" stroke="#C9A84C" stroke-width="2"/>
+        <text x="188" y="78" font-size="20" font-weight="400" letter-spacing="2">VENDÉE AUTOMOBILES</text>
+      </g>
+    </svg>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:12%"></div></div>
+  <div class="content">
+    <div class="screen-question">Bonjour 👋<br>Qui êtes-vous ?</div>
+    <div class="screen-sub">Sélectionnez votre nom</div>
+    <div class="vendor-grid" id="vendor-grid"></div>
+  </div>
+  <button class="fab" onclick="showStats()">📊 Stats</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN 1 — TYPE VN/VD/VO
+════════════════════════════════════════════ -->
+<div class="screen" id="s-type">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-vendeur')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 2 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:25%"></div></div>
+  <div class="content">
+    <div class="screen-question">Type de commande</div>
+    <div class="screen-sub">Quel type de véhicule vendez-vous ?</div>
+    <div class="type-cards">
+      <div class="type-card vn" onclick="setType('VN')">
+        <div class="type-icon">🚗</div>
+        <div class="type-info">
+          <div class="type-name">Véhicule Neuf</div>
+          <div class="type-desc">Commande catalogue ou stock neuf</div>
+        </div>
+        <span style="color:var(--steel);font-size:20px">›</span>
+      </div>
+      <div class="type-card vd" onclick="setType('VD')">
+        <div class="type-icon">⭐</div>
+        <div class="type-info">
+          <div class="type-name">Véhicule Démo</div>
+          <div class="type-desc">Véhicule de démonstration</div>
+        </div>
+        <span style="color:var(--steel);font-size:20px">›</span>
+      </div>
+      <div class="type-card vo" onclick="setType('VO')">
+        <div class="type-icon">🔄</div>
+        <div class="type-info">
+          <div class="type-name">Véhicule d'Occasion</div>
+          <div class="type-desc">VO particulier repris ou acheté</div>
+        </div>
+        <span style="color:var(--steel);font-size:20px">›</span>
+      </div>
+      <div class="type-card vom" onclick="setType('VOM')">
+        <div class="type-icon">🏢</div>
+        <div class="type-info">
+          <div class="type-name">VO Marchand</div>
+          <div class="type-desc">Vente à un professionnel / marchand</div>
+        </div>
+        <span style="color:var(--steel);font-size:20px">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN 2a — MARQUE (VN/VD)
+════════════════════════════════════════════ -->
+<div class="screen" id="s-marque">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-type')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 3 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:37%"></div></div>
+  <div class="content">
+    <div class="screen-question">Quelle marque ?</div>
+    <div class="screen-sub">Appuyez sur le logo</div>
+    <div class="brand-grid">
+
+      <div class="brand-card" onclick="setMarque('KIA')">
+        <div class="brand-text-logo">KIA</div>
+      </div>
+      <div class="brand-card" onclick="setMarque('MG')">
+        <div class="brand-text-logo">MG</div>
+      </div>
+      <div class="brand-card" onclick="setMarque('MAZDA')">
+        <div class="brand-text-logo">MAZDA</div>
+      </div>
+      <div class="brand-card" onclick="setMarque('OMODA / JAECOO')">
+        <div class="brand-text-logo" style="font-size:22px">OMODA<br>JAECOO</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN 2b — MODÈLE VO (texte)
+════════════════════════════════════════════ -->
+<div class="screen" id="s-modele-vo">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-type')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 3 / 7</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:40%"></div></div>
+  <div class="content">
+    <div class="screen-question">Modèle du véhicule</div>
+    <div class="screen-sub">Marque et modèle</div>
+    <div class="text-input-wrap">
+      <input class="text-field" id="modele-vo-input" type="text" placeholder="ex: Peugeot 308" autocomplete="off"/>
+      <div class="input-hint">Entrez la marque et le modèle</div>
+    </div>
+    <button class="next-btn" onclick="nextModeleVO()">Suivant →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — IMMAT VO
+════════════════════════════════════════════ -->
+<div class="screen" id="s-immat">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-modele-vo')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 4 / 7</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:55%"></div></div>
+  <div class="content">
+    <div class="screen-question">Immatriculation</div>
+    <div class="screen-sub">Numéro de plaque du véhicule</div>
+    <div class="text-input-wrap">
+      <input class="text-field" id="immat-input" type="text" placeholder="ex: AB-123-CD" autocomplete="off" style="text-transform:uppercase"/>
+      <div class="input-hint">Format : AB-123-CD</div>
+    </div>
+    <button class="next-btn" onclick="nextImmat()">Suivant →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — MARGE VO
+════════════════════════════════════════════ -->
+<div class="screen" id="s-marge">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-immat')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 5 / 7</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:68%"></div></div>
+  <div class="content">
+    <div class="screen-question">Marge brute dégagée</div>
+    <div class="screen-sub">Peut être négative — saisissez le montant</div>
+    <div class="marge-input-wrap">
+      <input class="text-field" id="marge-input" type="number" placeholder="ex: 2500" style="padding-right:50px"/>
+      <span class="marge-currency">€</span>
+    </div>
+    <div id="marge-indicator" style="margin-top:12px;text-align:center;font-size:13px;font-weight:700;min-height:20px"></div>
+    <button class="next-btn" onclick="nextMarge()">Suivant →</button>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     SCREEN — MODÈLE VN/VD
+════════════════════════════════════════════ -->
+<div class="screen" id="s-modele-vn">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-marque')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 4 / 7</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:45%"></div></div>
+  <div class="content">
+    <div class="screen-question">Quel modèle ?</div>
+    <div class="screen-sub">Saisissez le modèle du véhicule</div>
+    <div class="text-input-wrap">
+      <input class="text-field" id="modele-vn-input" type="text" placeholder="ex: Sportage, MG3, CX-30..." autocomplete="off"/>
+      <div class="input-hint">Entrez le modèle</div>
+    </div>
+    <button class="next-btn" onclick="nextModeleVN()">Suivant →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — ENTRETIEN (VN/VD seulement)
+════════════════════════════════════════════ -->
+<div class="screen" id="s-entretien">
+  <div class="top-bar">
+    <button class="back-btn" id="back-entretien" onclick="backEntretien()">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator" id="step-entretien">Étape 4 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:50%"></div></div>
+  <div class="content">
+    <div class="screen-question">Contrat d'entretien LVA ?</div>
+    <div class="screen-sub">Le client souscrit-il un contrat d'entretien ?</div>
+    <div class="yesno-wrap">
+      <button class="yn-btn yes" onclick="setEntretien(true)">✅ &nbsp; Oui</button>
+      <button class="yn-btn no" onclick="setEntretien(false)">❌ &nbsp; Non</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — FINANCEMENT
+════════════════════════════════════════════ -->
+<div class="screen" id="s-financement">
+  <div class="top-bar">
+    <button class="back-btn" id="back-fin" onclick="backFinancement()">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator" id="step-fin">Étape 5 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:62%"></div></div>
+  <div class="content">
+    <div class="screen-question">Financement ?</div>
+    <div class="screen-sub">Le client finance-t-il son véhicule ?</div>
+    <div class="yesno-wrap">
+      <button class="yn-btn yes" onclick="setFinancement(true)">✅ &nbsp; Oui — Crédit / LOA / LLD</button>
+      <button class="yn-btn no" onclick="setFinancement(false)">❌ &nbsp; Non — Comptant</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — MOIS LIVRAISON (VN/VD)
+════════════════════════════════════════════ -->
+<div class="screen" id="s-mois">
+  <div class="top-bar">
+    <button class="back-btn" onclick="backMois()">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 6 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:75%"></div></div>
+  <div class="content">
+    <div class="screen-question">Mois de livraison prévu</div>
+    <div class="screen-sub">Sélectionnez le mois</div>
+    <div class="mois-grid" id="mois-grid"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — STOCK / COMMANDE (VN/VD)
+════════════════════════════════════════════ -->
+<div class="screen" id="s-stock">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-mois')">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator">Étape 7 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:87%"></div></div>
+  <div class="content">
+    <div class="screen-question">Stock ou à commander ?</div>
+    <div class="screen-sub">Provenance du véhicule</div>
+    <div class="stock-wrap">
+      <button class="stock-btn" onclick="setStock('Stock')">
+        <span class="stock-icon">🏪</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">Stock</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Véhicule disponible immédiatement</div>
+        </div>
+      </button>
+      <button class="stock-btn" onclick="setStock('À commander')">
+        <span class="stock-icon">📦</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">À commander</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Commande usine / allocation</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — NOM CLIENT
+════════════════════════════════════════════ -->
+<div class="screen" id="s-client">
+  <div class="top-bar">
+    <button class="back-btn" id="back-client" onclick="backClient()">←</button>
+    <div><div class="logo-text">LVA</div></div>
+    <div class="step-indicator" id="step-client">Étape 8 / 8</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:95%"></div></div>
+  <div class="content">
+    <div class="screen-question">Nom du client</div>
+    <div class="screen-sub">Civilité, nom et prénom</div>
+    <div class="text-input-wrap">
+      <input class="text-field" id="client-input" type="text" placeholder="ex: M. Dupont Jean" autocomplete="name"/>
+      <div class="input-hint">Tel qu'il apparaît sur le bon de commande</div>
+    </div>
+    <button class="next-btn" onclick="nextClient()">Voir le récapitulatif →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — RÉCAPITULATIF
+════════════════════════════════════════════ -->
+<div class="screen" id="s-recap">
+  <div class="top-bar">
+    <div><div class="logo-text">LVA</div><div class="logo-sub">Récapitulatif</div></div>
+    <div class="step-indicator">✓ Vérification</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:100%"></div></div>
+  <div class="content">
+    <div class="screen-question" style="margin-bottom:20px">Tout est correct ?</div>
+    <div class="recap-card">
+      <div class="recap-header">📋 Commande du <span id="recap-date"></span></div>
+      <div class="recap-row" onclick="ouvrirDetailVendeur(current.vendeur,'s-recap')" style="cursor:pointer"><span class="recap-label">Vendeur 👆 stats</span><span class="recap-value" id="recap-vendeur" style="color:var(--gold)"></span></div>
+      <div class="recap-row"><span class="recap-label">Site</span><span class="recap-value" id="recap-site"></span></div>
+      <div class="recap-row"><span class="recap-label">Type</span><span class="recap-value" id="recap-type"></span></div>
+      <div class="recap-row" id="recap-marque-row"><span class="recap-label">Marque</span><span class="recap-value" id="recap-marque"></span></div>
+      <div class="recap-row" id="recap-immat-row"><span class="recap-label">Immatriculation</span><span class="recap-value" id="recap-immat"></span></div>
+      <div class="recap-row" id="recap-marge-row"><span class="recap-label">Marge brute</span><span class="recap-value" id="recap-marge"></span></div>
+      <div class="recap-row" id="recap-entretien-row"><span class="recap-label">Entretien LVA</span><span class="recap-value" id="recap-entretien"></span></div>
+      <div class="recap-row"><span class="recap-label">Financement</span><span class="recap-value" id="recap-financement"></span></div>
+      <div class="recap-row" id="recap-mois-row"><span class="recap-label">Livraison prévue</span><span class="recap-value" id="recap-mois"></span></div>
+      <div class="recap-row" id="recap-stock-row"><span class="recap-label">Provenance</span><span class="recap-value" id="recap-stock"></span></div>
+      <div class="recap-row"><span class="recap-label">Client</span><span class="recap-value" id="recap-client"></span></div>
+    </div>
+    <button class="btn-valider" onclick="validerCommande()">✅ Valider la commande</button>
+    <button class="btn-corriger" onclick="recommencer()">✏️ Corriger — recommencer</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — FÉLICITATIONS
+════════════════════════════════════════════ -->
+<div class="screen" id="s-congrats">
+  <div class="top-bar">
+    <div><div class="logo-text">LVA</div></div>
+  </div>
+  <div class="congrats-wrap">
+    <div class="congrats-emoji" id="congrats-emoji">🎉</div>
+    <div class="congrats-title" id="congrats-title">Bien joué !</div>
+    <div class="congrats-msg" id="congrats-msg">Votre commande a été enregistrée.</div>
+    <button class="btn-autre" onclick="nouvelleCommande()">➕ Saisir une autre commande</button>
+    <button class="btn-fin" onclick="terminer()">👋 C'est tout pour aujourd'hui</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — FIN DE JOURNÉE
+════════════════════════════════════════════ -->
+<div class="screen" id="s-fin">
+  <div class="fin-wrap">
+    <div class="fin-logo">LVA</div>
+    <div class="fin-sub">Littoral Vendée Automobiles</div>
+    <div class="fin-gold-line"></div>
+    <div class="fin-msg" id="fin-msg">Bonne fin de journée !<br>Vos ventes ont été enregistrées. 🚗</div>
+    <button class="btn-autre" onclick="goTo('s-vendeur')" style="max-width:300px">🔄 Retour à l'accueil</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN — STATISTIQUES
+════════════════════════════════════════════ -->
+<div class="screen" id="s-stats">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goTo('s-vendeur')">←</button>
+    <div><div class="logo-text">LVA</div><div class="logo-sub">Statistiques</div></div>
+    <div style="font-size:11px;color:var(--muted)" id="stats-date-label"></div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:100%;background:var(--steel)"></div></div>
+
+  <div class="stats-nav" id="stats-nav"></div>
+
+  <div class="stats-content" id="stats-content"></div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     SCREEN — DÉTAIL VENDEUR
+════════════════════════════════════════════ -->
+<div class="screen" id="s-vendeur-detail">
+  <div class="top-bar">
+    <button class="back-btn" onclick="fermerDetailVendeur()">←</button>
+    <div>
+      <div class="logo-text">LVA</div>
+      <div class="logo-sub" id="detail-vendeur-site"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted)" id="detail-vendeur-periode"></div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" style="width:100%;background:var(--steel)"></div></div>
+  <div id="detail-vendeur-content" style="width:100%;padding:16px 16px 40px;max-width:480px"></div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ZONE PDF (cachée sauf à l'impression)
+════════════════════════════════════════ -->
+<div id="print-zone"></div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const SITES_DATA = {
+  "Les Sables d'Olonne": ["Pierre-Emmanuel Cottu", "Nicolas Rigollage", "Vente Direction"],
+  "Challans": ["Stéphane Camboni","Ronan Legeard","Louis Guillouche","Florian Lemoine","Romain Deuil","Benjamin Rousseau","Vente Direction"],
+  "La Roche sur Yon": ["David Fortineau","Pascal Bonnin","Nicolas Reigner","Pascal Chauveau","Bastien Durantin","Kalvin Le Hingrat","Vente Direction"],
+};
+
+const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+const FELICITATIONS = [
+  { emoji:"🏆", title:"Champion !", msg:"Belle vente ! Vous êtes en feu aujourd'hui. Continuez comme ça !" },
+  { emoji:"🚀", title:"Décollage !", msg:"Excellente commande ! Chaque vente rapproche de l'objectif. En route !" },
+  { emoji:"⭐", title:"Bravo !", msg:"Super boulot ! Le client a fait le bon choix en vous faisant confiance." },
+  { emoji:"💪", title:"Solide !", msg:"C'est dans la boîte ! Une belle commande de plus pour LVA." },
+  { emoji:"🎯", title:"Dans le mille !", msg:"Parfait ! Votre commande est enregistrée. On vise le top ce mois-ci !" },
+  { emoji:"🔥", title:"En feu !", msg:"Quel talent ! Vos clients ont de la chance de vous avoir." },
+  { emoji:"👏", title:"Magnifique !", msg:"Belle performance ! Chaque commande compte, et celle-là est enregistrée." },
+  { emoji:"🌟", title:"Superstar !", msg:"Voilà du beau travail. L'équipe LVA est fière de vous !" },
+];
+
+const STORAGE_KEY = "lva_bdc_data_v3";
+let orders = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(orders)); }
+
+function isMoisCourant(dateISO) {
+  // Simple et fiable : on compare juste mois+année en local
+  if (!dateISO) return false;
+  const d = new Date(dateISO);
+  const now = new Date();
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+function supprimerCommande(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  // Vérifie via l'id en priorité
+  const now = new Date();
+  let peutSupprimer = false;
+  if (order.id && typeof order.id === 'number') {
+    const d = new Date(order.id);
+    peutSupprimer = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  } else if (order.dateISO) {
+    peutSupprimer = isMoisCourant(order.dateISO);
+  }
+  if (!peutSupprimer) {
+    alert('\u274C Impossible de modifier une commande d\'un mois pass\u00e9.');
+    return;
+  }
+  if (!confirm('Supprimer la commande de ' + (order.client||'ce client') + ' ?')) return;
+  orders = orders.filter(o => o.id !== id);
+  saveData();
+  ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let current = {};
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+function init() {
+  buildVendeurGrid();
+  buildMoisGrid();
+  buildStatsNav();
+  document.getElementById('marge-input').addEventListener('input', updateMargeIndicator);
+}
+
+function buildVendeurGrid() {
+  const grid = document.getElementById('vendor-grid');
+  grid.innerHTML = '';
+  Object.entries(SITES_DATA).forEach(([site, vendeurs]) => {
+    const label = document.createElement('div');
+    label.className = 'vendor-site-label';
+    label.textContent = site;
+    grid.appendChild(label);
+    vendeurs.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'vendor-btn';
+      btn.textContent = v;
+      btn.onclick = () => setVendeur(v, site);
+      grid.appendChild(btn);
+    });
+  });
+}
+
+function buildMoisGrid() {
+  const grid = document.getElementById('mois-grid');
+  const now = new Date();
+  MOIS.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mois-btn' + (i === now.getMonth() ? ' selected' : '');
+    btn.textContent = m.substring(0,3);
+    btn.onclick = () => setMois(m, btn);
+    grid.appendChild(btn);
+  });
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function showStats() { buildStats(); goTo('s-stats'); }
+
+// ── FLOW VN/VD ───────────────────────────────────────────────────────────────
+function setVendeur(nom, site) {
+  current = { vendeur: nom, site };
+  goTo('s-type');
+}
+
+function setType(type) {
+  current.type = type;
+  if (type === 'VO' || type === 'VOM') { goTo('s-modele-vo'); }
+  else { goTo('s-marque'); }
+}
+
+function setMarque(marque) {
+  current.marque = marque;
+  goTo('s-modele-vn');
+}
+
+function nextModeleVN() {
+  const v = document.getElementById('modele-vn-input').value.trim();
+  if (!v) { document.getElementById('modele-vn-input').focus(); return; }
+  current.modele = v;
+  goTo('s-stock');
+}
+
+function backEntretien() {
+  if (current.type === 'VO' || current.type === 'VOM') goTo('s-marge');
+  else goTo('s-stock');
+}
+
+function setEntretien(val) {
+  current.entretien = val;
+  goTo('s-financement');
+  document.getElementById('step-fin').textContent = 'Étape 5 / 8';
+}
+
+function backFinancement() {
+  if (current.type === 'VO') goTo('s-entretien');
+  else goTo('s-entretien');
+}
+
+function setFinancement(val) {
+  current.financement = val;
+  goTo('s-client');
+  if (current.type === 'VO' || current.type === 'VOM') {
+    document.getElementById('step-client').textContent = 'Étape 7 / 7';
+  } else {
+    document.getElementById('step-client').textContent = 'Étape 7 / 7';
+  }
+}
+
+function backMois() {
+  goTo('s-financement');
+}
+
+function setMois(mois, btn) {
+  current.mois = mois;
+  document.querySelectorAll('.mois-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  setTimeout(() => goTo('s-stock'), 200);
+}
+
+function setStock(val) {
+  current.stock = val;
+  goTo('s-entretien');
+  document.getElementById('step-entretien').textContent = 'Étape 6 / 7';
+}
+
+function backClient() {
+  if (current.type === 'VO' || current.type === 'VOM') goTo('s-financement');
+  else goTo('s-stock');
+}
+
+// ── FLOW VO ──────────────────────────────────────────────────────────────────
+function nextModeleVO() {
+  const v = document.getElementById('modele-vo-input').value.trim();
+  if (!v) { document.getElementById('modele-vo-input').focus(); return; }
+  current.modele = v;
+  goTo('s-immat');
+}
+
+function nextImmat() {
+  const v = document.getElementById('immat-input').value.trim();
+  if (!v) { document.getElementById('immat-input').focus(); return; }
+  current.immat = v.toUpperCase();
+  goTo('s-marge');
+}
+
+function updateMargeIndicator() {
+  const v = parseFloat(document.getElementById('marge-input').value);
+  const el = document.getElementById('marge-indicator');
+  if (isNaN(v)) { el.textContent = ''; return; }
+  if (v < 0) { el.textContent = '⚠️ Marge négative'; el.style.color = 'var(--red)'; }
+  else if (v === 0) { el.textContent = '— Marge nulle'; el.style.color = 'var(--muted)'; }
+  else { el.textContent = '✅ Marge positive'; el.style.color = 'var(--green)'; }
+}
+
+function nextMarge() {
+  const v = document.getElementById('marge-input').value.trim();
+  if (v === '') { document.getElementById('marge-input').focus(); return; }
+  current.marge = parseFloat(v);
+  goTo('s-entretien');
+  document.getElementById('step-entretien').textContent = 'Étape 5 / 7';
+}
+
+// ── CLIENT → RECAP ───────────────────────────────────────────────────────────
+function nextClient() {
+  const v = document.getElementById('client-input').value.trim();
+  if (!v) { document.getElementById('client-input').focus(); return; }
+  current.client = v;
+  showRecap();
+}
+
+function showRecap() {
+  const now = new Date();
+  document.getElementById('recap-date').textContent = now.toLocaleDateString('fr-FR');
+  document.getElementById('recap-vendeur').textContent = current.vendeur;
+  document.getElementById('recap-site').textContent = current.site;
+
+  const typeEl = document.getElementById('recap-type');
+  typeEl.textContent = current.type;
+  typeEl.className = 'recap-value badge-' + current.type.toLowerCase();
+
+  // Champs conditionnels
+  const isVO = current.type === 'VO' || current.type === 'VOM';
+  const isVN = !isVO;
+
+  document.getElementById('recap-marque-row').style.display = isVN ? '' : 'none';
+  if (isVN) document.getElementById('recap-marque').textContent = (current.marque||'') + (current.modele ? ' — '+current.modele : '');
+
+  document.getElementById('recap-immat-row').style.display = isVO ? '' : 'none';
+  if (isVO) document.getElementById('recap-immat').textContent = current.immat || '—';
+
+  document.getElementById('recap-marge-row').style.display = isVO ? '' : 'none';
+  if (isVO) {
+    const m = current.marge;
+    const el = document.getElementById('recap-marge');
+    el.textContent = (m >= 0 ? '+' : '') + m.toLocaleString('fr-FR') + ' €';
+    el.style.color = m < 0 ? 'var(--red)' : 'var(--green)';
+  }
+
+  document.getElementById('recap-entretien-row').style.display = '';
+  document.getElementById('recap-entretien').textContent = current.entretien ? '✅ Oui' : '❌ Non';
+  document.getElementById('recap-financement').textContent = current.financement ? '✅ Oui' : '❌ Non';
+
+  document.getElementById('recap-mois-row').style.display = 'none';
+
+  document.getElementById('recap-stock-row').style.display = isVN ? '' : 'none';
+  if (isVN) document.getElementById('recap-stock').textContent = current.stock || '—';
+
+  document.getElementById('recap-client').textContent = current.client;
+  goTo('s-recap');
+}
+
+function validerCommande() {
+  const order = {
+    ...current,
+    date: new Date().toLocaleDateString('fr-FR'),
+    dateISO: new Date().toISOString(),
+    id: Date.now(),
+  };
+  orders.push(order);
+  saveData();
+
+  // Grand Chelem : stock + financement + entretien (VN ou VD)
+  const isGrandChelem = (current.type === 'VN' || current.type === 'VD')
+    && current.stock === 'Stock'
+    && current.financement === true
+    && current.entretien === true;
+
+  if (isGrandChelem) {
+    document.getElementById('congrats-emoji').textContent = '🏆';
+    document.getElementById('congrats-title').textContent = 'GRAND CHELEM ' + current.vendeur.split(' ')[0] + ' !';
+    document.getElementById('congrats-msg').textContent = 'Stock + Financement + Entretien ! La combinaison parfaite. Vous venez de réaliser un Grand Chelem, bravo ! 🎯🔥';
+  } else {
+    const f = FELICITATIONS[Math.floor(Math.random() * FELICITATIONS.length)];
+    document.getElementById('congrats-emoji').textContent = f.emoji;
+    document.getElementById('congrats-title').textContent = f.title + ' ' + current.vendeur.split(' ')[0] + ' !';
+    document.getElementById('congrats-msg').textContent = f.msg;
+  }
+  goTo('s-congrats');
+}
+
+function resetChamps() {
+  document.getElementById('modele-vn-input').value = '';
+  document.getElementById('modele-vo-input').value = '';
+  document.getElementById('immat-input').value = '';
+  document.getElementById('marge-input').value = '';
+  document.getElementById('client-input').value = '';
+  document.getElementById('marge-indicator').textContent = '';
+}
+
+function recommencer() {
+  current = {};
+  resetChamps();
+  goTo('s-vendeur');
+}
+
+function nouvelleCommande() {
+  const vendeur = current.vendeur;
+  const site = current.site;
+  current = { vendeur, site };
+  resetChamps();
+  goTo('s-type');
+}
+
+function terminer() {
+  const prenom = current.vendeur ? current.vendeur.split(' ')[0] : '';
+  document.getElementById('fin-msg').innerHTML =
+    `Bonne fin de journée ${prenom} ! 👋<br><br>Vos commandes ont bien été enregistrées.<br><span style="color:var(--gold)">Merci pour votre travail.</span> 🚗`;
+  current = {};
+  goTo('s-fin');
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────────
+let statsSite = 'Groupe';
+let statsMois = new Date().getMonth();
+let statsAnnee = new Date().getFullYear();
+
+function buildStatsNav() {
+  const nav = document.getElementById('stats-nav');
+  nav.innerHTML = '';
+  ['Groupe', ...Object.keys(SITES_DATA)].forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'snav-btn' + (s === statsSite ? ' active' : '');
+    btn.textContent = s === 'Groupe' ? '🏢 Groupe' : s;
+    btn.onclick = () => { statsSite = s; buildStatsNav(); renderStats(); };
+    nav.appendChild(btn);
+  });
+}
+
+function buildStats() {
+  document.getElementById('stats-date-label').textContent =
+    MOIS[statsMois].substring(0,3) + ' ' + statsAnnee;
+  buildStatsNav();
+  renderStats();
+}
+
+function getFilteredOrders(siteFilter) {
+  return orders.filter(o => {
+    if (siteFilter !== 'Groupe' && o.site !== siteFilter) return false;
+    if (!o.dateISO) return false;
+    const d = new Date(o.dateISO);
+    return d.getMonth() === statsMois && d.getFullYear() === statsAnnee;
+  });
+}
+
+function renderStats() {
+  const content = document.getElementById('stats-content');
+  const filtered = getFilteredOrders(statsSite);
+
+  if (!filtered.length) {
+    content.innerHTML = `
+      <div class="filter-row">
+        ${filterHTML()}
+      </div>
+      <div class="empty-state">
+        <div class="big">📭</div>
+        Aucune commande pour cette période
+      </div>`;
+    attachFilterListeners();
+    return;
+  }
+
+  const vn  = filtered.filter(o=>o.type==='VN').length;
+  const vd  = filtered.filter(o=>o.type==='VD').length;
+  const vo  = filtered.filter(o=>o.type==='VO').length;
+  const vom = filtered.filter(o=>o.type==='VOM').length;
+  const voTotal = vo + vom;
+  const fin = filtered.filter(o=>o.financement).length;
+  const ent = filtered.filter(o=>o.entretien).length;
+  const margeVO  = filtered.filter(o=>o.type==='VO'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeVOM = filtered.filter(o=>o.type==='VOM'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeTotal = margeVO + margeVOM;
+
+  // Marques VN+VD
+  const MARQUES = ['KIA','MG','MAZDA','OMODA / JAECOO'];
+  const MARQUE_COLORS = { 'KIA':'#5aaeff', 'MG':'#ff6b6b', 'MAZDA':'#ffb347', 'OMODA / JAECOO':'#C9A84C' };
+  const MARQUE_ICONS  = { 'KIA':'🔵', 'MG':'🔴', 'MAZDA':'🟠', 'OMODA / JAECOO':'⭐' };
+  const vnvd = filtered.filter(o=>o.type==='VN'||o.type==='VD');
+
+  let html = `<div class="filter-row">${filterHTML()}</div>`;
+
+  // KPIs
+  const vnvdTotal = vn + vd;
+
+  // ── TOTAL GÉNÉRAL (grand format)
+  html += `<div style="background:var(--navy2);border:2px solid var(--gold);border-radius:14px;padding:18px;text-align:center;margin-bottom:10px">
+    <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Total commandes</div>
+    <div style="font-size:52px;font-weight:900;color:var(--gold);line-height:1">${filtered.length}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">${MOIS[statsMois]} ${statsAnnee}</div>
+  </div>`;
+
+  // ── LIGNE VN/VD
+  html += `<div style="margin-bottom:6px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;padding-left:4px">🔵 Véhicules Neufs &amp; Démo</div>
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-box" style="border-color:#3a5a8e">
+        <div class="kpi-num" style="color:#7ab8ff">${vnvdTotal}</div>
+        <div class="kpi-label">VN+VD total</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:#5aaeff">${vn}</div>
+        <div class="kpi-label">VN</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:var(--gold)">${vd}</div>
+        <div class="kpi-label">VD</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── LIGNE VO/VOM
+  html += `<div style="margin-bottom:10px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;padding-left:4px">🟢 Occasions</div>
+    <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-box" style="border-color:#1a5a3a">
+        <div class="kpi-num" style="color:#4dd9a0">${voTotal}</div>
+        <div class="kpi-label">VO total</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:#1DB87A">${vo}</div>
+        <div class="kpi-label">VO part.</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:#b388ff">${vom}</div>
+        <div class="kpi-label">VOM</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── LIGNE FIN / ENTRETIEN
+  html += `<div class="kpi-row" style="grid-template-columns:repeat(2,1fr);margin-bottom:10px">
+    <div class="kpi-box" style="border-color:#1a5a3a">
+      <div class="kpi-num" style="color:#1DB87A">${fin}</div>
+      <div class="kpi-label">💳 Financements</div>
+    </div>
+    <div class="kpi-box" style="border-color:#1a3a5a">
+      <div class="kpi-num" style="color:#7EB8F5">${ent}</div>
+      <div class="kpi-label">🔧 Entretiens</div>
+    </div>
+  </div>`;
+
+  // ── BLOC MARQUES VN/VD ──────────────────────────────────────────────────
+  if (vnvd.length > 0) {
+    html += `<div class="section-title-stats">🏷️ Répartition par marque (VN + VD)</div>`;
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">`;
+    MARQUES.forEach(m => {
+      const total = vnvd.filter(o=>o.marque===m).length;
+      const vnCount = vnvd.filter(o=>o.marque===m&&o.type==='VN').length;
+      const vdCount = vnvd.filter(o=>o.marque===m&&o.type==='VD').length;
+      const pct = vnvd.length > 0 ? Math.round(total/vnvd.length*100) : 0;
+      const col = MARQUE_COLORS[m] || 'var(--gold)';
+      const icon = MARQUE_ICONS[m] || '🚗';
+      const shortName = m === 'OMODA / JAECOO' ? 'OMODA' : m;
+      html += `<div style="background:var(--navy2);border:2px solid ${total>0?col:'var(--steel)'};border-radius:14px;padding:14px 12px;opacity:${total===0?'0.45':'1'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px">${icon}</span>
+          <span style="font-size:12px;font-weight:800;color:${col};letter-spacing:1px">${shortName}</span>
+        </div>
+        <div style="font-size:32px;font-weight:900;color:${col};line-height:1">${total}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">
+          ${vnCount>0?`<span style="color:#5aaeff">${vnCount} VN</span>`:''} 
+          ${vnCount>0&&vdCount>0?'·':''}
+          ${vdCount>0?`<span style="color:var(--gold)">${vdCount} VD</span>`:''}
+          ${total===0?'Aucune vente':''}
+        </div>
+        <div style="margin-top:8px;height:4px;background:var(--navy3);border-radius:2px">
+          <div style="height:4px;width:${pct}%;background:${col};border-radius:2px;transition:width .5s"></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:3px;text-align:right">${pct}%</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Marge VO globale + détail
+  if (voTotal > 0) {
+    const mc  = margeTotal < 0 ? '#E03E3E' : '#1DB87A';
+    const mc1 = margeVO < 0    ? '#E03E3E' : '#1DB87A';
+    const mc2 = margeVOM < 0   ? '#E03E3E' : '#b388ff';
+    html += `<div class="marge-box" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="marge-label">💰 Marge VO globale — ${statsSite==='Groupe'?'Groupe':statsSite}</div>
+        <div class="marge-val" style="color:${mc}">${margeTotal.toLocaleString('fr-FR')} €</div>
+      </div>
+      <div style="height:1px;background:var(--navy3)"></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px">
+        <span style="color:#8A99AE">VO Particuliers (${vo})</span>
+        <span style="font-weight:700;color:${mc1}">${margeVO.toLocaleString('fr-FR')} €</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px">
+        <span style="color:#8A99AE">VO Marchands (${vom})</span>
+        <span style="font-weight:700;color:${mc2}">${margeVOM.toLocaleString('fr-FR')} €</span>
+      </div>
+    </div>`;
+  }
+
+  // Par site (si groupe) ou par vendeur
+  if (statsSite === 'Groupe') {
+    Object.entries(SITES_DATA).forEach(([site, vendeurs]) => {
+      const siteOrders = filtered.filter(o=>o.site===site);
+      if (!siteOrders.length) return;
+      const siteVN = siteOrders.filter(o=>o.type==='VN').length;
+      const siteVD = siteOrders.filter(o=>o.type==='VD').length;
+      const siteVO = siteOrders.filter(o=>o.type==='VO').length;
+      const siteFin = siteOrders.filter(o=>o.financement).length;
+      const siteEnt = siteOrders.filter(o=>o.entretien).length;
+      const siteMarge = siteOrders.filter(o=>o.type==='VO'&&o.marge!==undefined)
+        .reduce((s,o)=>s+parseFloat(o.marge||0),0);
+
+      html += `<div class="section-title-stats">📍 ${site}</div>`;
+      html += vendeurs.map(v => {
+        const vo = siteOrders.filter(o=>o.vendeur===v);
+        if (!vo.length) return '';
+        const initials = v.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
+        const vVN = vo.filter(o=>o.type==='VN').length;
+        const vVD = vo.filter(o=>o.type==='VD').length;
+        const vVO = vo.filter(o=>o.type==='VO').length;
+        const vFin = vo.filter(o=>o.financement).length;
+        const vEnt = vo.filter(o=>o.entretien).length;
+        const vMarge = vo.filter(o=>o.type==='VO'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+        return `<div class="vendeur-row" onclick="ouvrirDetailVendeur('${v}','s-stats')" style="cursor:pointer">
+          <div class="vendeur-avatar">${initials}</div>
+          <div style="flex:1">
+            <div class="vendeur-name">${v} <span style="color:var(--steel);font-size:11px">›</span></div>
+            <div class="vendeur-chips" style="margin-top:6px">
+              <span class="chip chip-total">${vo.length} vente${vo.length>1?'s':''}</span>
+              ${vVN?`<span class="chip chip-vn">${vVN}VN</span>`:''}
+              ${vVD?`<span class="chip chip-vn" style="color:var(--gold);border-color:#6a5010;background:#2a1a00">${vVD}VD</span>`:''}
+              ${vVO?`<span class="chip chip-vo">${vVO}VO</span>`:''}
+              ${vFin?`<span class="chip chip-fin">${vFin}💳</span>`:''}
+              ${vEnt?`<span class="chip chip-ent">${vEnt}🔧</span>`:''}
+              ${vVO?`<span class="chip" style="background:${vMarge<0?'#3a0d0d':'#0d3a25'};color:${vMarge<0?'var(--red)':'var(--green)'};border-color:${vMarge<0?'#6a1010':'#1a6040'}">${vMarge.toLocaleString('fr-FR')}€</span>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Total site
+      const smColor = siteMarge < 0 ? 'var(--red)' : 'var(--green)';
+      html += `<div style="background:var(--navy3);border-radius:10px;padding:10px 14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px">
+        <span style="color:var(--gold);font-weight:700">TOTAL ${site.toUpperCase()}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="chip chip-total">${siteOrders.length}</span>
+          <span class="chip chip-vn">${siteVN}VN</span>
+          <span class="chip chip-vo">${siteVO}VO</span>
+          ${siteVO?`<span class="chip" style="color:${smColor};border-color:${smColor};background:transparent">${siteMarge.toLocaleString('fr-FR')}€</span>`:''}
+        </div>
+      </div>`;
+    });
+  } else {
+    // Vue site — par vendeur
+    const vendeurs = SITES_DATA[statsSite] || [];
+    html += `<div class="section-title-stats">👥 Vendeurs</div>`;
+    vendeurs.forEach(v => {
+      const vo = filtered.filter(o=>o.vendeur===v);
+      const initials = v.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
+      const vVN = vo.filter(o=>o.type==='VN').length;
+      const vVD = vo.filter(o=>o.type==='VD').length;
+      const vVO = vo.filter(o=>o.type==='VO').length;
+      const vFin = vo.filter(o=>o.financement).length;
+      const vEnt = vo.filter(o=>o.entretien).length;
+      const vMarge = vo.filter(o=>o.type==='VO'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+      html += `<div class="vendeur-row" onclick="ouvrirDetailVendeur('${v}','s-stats')" style="cursor:pointer">
+        <div class="vendeur-avatar" style="${!vo.length?'opacity:.3':''}">${initials}</div>
+        <div style="flex:1">
+          <div class="vendeur-name" style="${!vo.length?'color:var(--muted)':''}">
+            ${v} ${vo.length?'<span style="color:var(--steel);font-size:11px">›</span>':''}
+          </div>
+          ${vo.length ? `<div class="vendeur-chips" style="margin-top:6px">
+            <span class="chip chip-total">${vo.length} vente${vo.length>1?'s':''}</span>
+            ${vVN?`<span class="chip chip-vn">${vVN}VN</span>`:''}
+            ${vVD?`<span class="chip chip-vn" style="color:var(--gold);border-color:#6a5010;background:#2a1a00">${vVD}VD</span>`:''}
+            ${vVO?`<span class="chip chip-vo">${vVO}VO</span>`:''}
+            ${vFin?`<span class="chip chip-fin">${vFin}💳</span>`:''}
+            ${vEnt?`<span class="chip chip-ent">${vEnt}🔧</span>`:''}
+            ${vVO?`<span class="chip" style="background:${vMarge<0?'#3a0d0d':'#0d3a25'};color:${vMarge<0?'var(--red)':'var(--green)'};border-color:${vMarge<0?'#6a1010':'#1a6040'}">${vMarge.toLocaleString('fr-FR')}€</span>`:''}
+          </div>` : `<div style="font-size:11px;color:var(--muted);margin-top:3px">Aucune vente ce mois</div>`}
+        </div>
+      </div>`;
+    });
+  }
+
+  content.innerHTML = html;
+  attachFilterListeners();
+}
+
+function filterHTML() {
+  return `
+    <select class="filter-select" id="filter-mois">
+      ${MOIS.map((m,i)=>`<option value="${i}" ${i===statsMois?'selected':''}>${m}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="filter-annee" style="max-width:100px">
+      ${[2025,2026,2027].map(y=>`<option value="${y}" ${y===statsAnnee?'selected':''}>${y}</option>`).join('')}
+    </select>`;
+}
+
+// ── DÉTAIL VENDEUR ───────────────────────────────────────────────────────────
+let detailVendeurNom = '';
+let detailVendeurRetour = '';
+
+function ouvrirDetailVendeur(nom, retourScreen) {
+  detailVendeurNom = nom;
+  detailVendeurRetour = retourScreen || 's-stats';
+
+  const vendeurOrders = orders.filter(o => {
+    if (o.vendeur !== nom) return false;
+    if (!o.dateISO) return false;
+    const d = new Date(o.dateISO);
+    return d.getMonth() === statsMois && d.getFullYear() === statsAnnee;
+  });
+
+  let site = '';
+  Object.entries(SITES_DATA).forEach(([s, vs]) => { if (vs.includes(nom)) site = s; });
+
+  const initials = nom.split(' ').map(x=>x[0]).join('').substring(0,2).toUpperCase();
+  const periode = MOIS[statsMois] + ' ' + statsAnnee;
+
+  document.getElementById('detail-vendeur-site').textContent = site;
+  document.getElementById('detail-vendeur-periode').textContent = periode;
+
+  const totVN  = vendeurOrders.filter(o=>o.type==='VN').length;
+  const totVD  = vendeurOrders.filter(o=>o.type==='VD').length;
+  const totVO  = vendeurOrders.filter(o=>o.type==='VO').length;
+  const totFin = vendeurOrders.filter(o=>o.financement).length;
+  const totEnt = vendeurOrders.filter(o=>o.entretien).length;
+  const totMarge = vendeurOrders
+    .filter(o=>o.type==='VO' && o.marge!==undefined)
+    .reduce((s,o)=>s+parseFloat(o.marge||0), 0);
+  const mc = totMarge < 0 ? '#E03E3E' : '#1DB87A';
+
+  // ── En-tête vendeur
+  let html = '<div class="detail-header">'
+    + '<div class="detail-avatar">' + initials + '</div>'
+    + '<div>'
+    + '<div style="font-size:16px;font-weight:800">' + nom + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + site + ' — ' + periode + '</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--gold);margin-top:4px">'
+    + vendeurOrders.length + ' vente' + (vendeurOrders.length>1?'s':'') + ' ce mois'
+    + '</div></div></div>';
+
+  if (!vendeurOrders.length) {
+    html += '<div class="empty-state"><div class="big">📭</div>Aucune vente ce mois</div>';
+    document.getElementById('detail-vendeur-content').innerHTML = html;
+    goTo('s-vendeur-detail');
+    return;
+  }
+
+  // ── KPIs
+  html += '<div class="detail-kpis">'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#5aaeff">' + totVN + '</div><div class="detail-kpi-label">VN</div></div>'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#C9A84C">' + totVD + '</div><div class="detail-kpi-label">VD</div></div>'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#1DB87A">' + totVO + '</div><div class="detail-kpi-label">VO</div></div>'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#1DB87A">' + totFin + '</div><div class="detail-kpi-label">Fin.</div></div>'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#7EB8F5">' + totEnt + '</div><div class="detail-kpi-label">Entretien</div></div>'
+    + '<div class="detail-kpi" style="grid-column:span 3;border-color:' + mc + '">'
+    + '<div class="detail-kpi-num" style="color:' + mc + ';font-size:18px">' + totMarge.toLocaleString('fr-FR') + ' €</div>'
+    + '<div class="detail-kpi-label">Marge VO</div></div>'
+    + '</div>';
+
+  // ── Tableau
+  html += '<div class="detail-table-wrap"><table class="detail-table"><thead><tr>'
+    + '<th>Client</th><th>Type</th><th>Marque</th><th>Modèle</th><th>Fin.</th><th>Entr.</th><th>Marge VO</th><th></th>'
+    + '</tr></thead><tbody>';
+
+  vendeurOrders.forEach(function(o) {
+    var typeColor  = o.type==='VN' ? '#5aaeff' : o.type==='VD' ? '#C9A84C' : o.type==='VOM' ? '#b388ff' : '#1DB87A';
+    var isVO       = o.type==='VO' || o.type==='VOM';
+    var marque     = isVO ? (o.modele||'—') : (o.marque||'—');
+    var modele     = isVO ? (o.immat||'—')  : (o.modele||'—');
+    var margeStr   = '—';
+    var margeColor = '#8A99AE';
+    if (isVO && o.marge!==undefined && o.marge!=='') {
+      var mv = parseFloat(o.marge);
+      margeStr  = mv.toLocaleString('fr-FR') + ' €';
+      margeColor = mv < 0 ? '#E03E3E' : '#1DB87A';
+    }
+    // Utilise l'id (timestamp de création) — fiable même si dateISO est absent/UTC
+    const now2 = new Date();
+    let canDelete = false;
+    if (o.id && typeof o.id === 'number') {
+      const d = new Date(o.id);
+      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+    } else if (o.dateISO) {
+      const d = new Date(o.dateISO);
+      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+    }
+    const deleteBtn = canDelete
+      ? '<button data-del="' + o.id + '" style="background:#E03E3E;border:none;border-radius:6px;color:white;font-size:14px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif">🗑</button>'
+      : '<span style="font-size:12px;color:var(--muted)">🔒</span>';
+    html += '<tr>'
+      + '<td style="font-weight:700;color:#111;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (o.client||'—') + '</td>'
+      + '<td><span style="color:' + typeColor + ';font-weight:800;font-size:11px">' + o.type + '</span></td>'
+      + '<td style="color:#333;font-size:11px;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + marque + '</td>'
+      + '<td style="color:#555;font-size:11px;max-width:65px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + modele + '</td>'
+      + '<td class="ck">' + (o.financement?'✅':'❌') + '</td>'
+      + '<td class="ck">' + (o.entretien?'✅':'❌') + '</td>'
+      + '<td style="font-weight:700;color:' + margeColor + ';font-size:12px">' + margeStr + '</td>'
+      + '<td style="text-align:center">' + deleteBtn + '</td>'
+      + '</tr>';
+  });
+
+  // ── Ligne total
+  html += '<tr class="total-row">'
+    + '<td colspan="4">TOTAL — ' + vendeurOrders.length + ' vente' + (vendeurOrders.length>1?'s':'') + '</td>'
+    + '<td>' + totFin + ' ✅</td>'
+    + '<td>' + totEnt + ' ✅</td>'
+    + '<td style="color:' + mc + '">' + (totVO>0 ? totMarge.toLocaleString('fr-FR')+' €' : '—') + '</td>'
+    + '<td></td>'
+    + '</tr>';
+
+  html += '</tbody></table></div>';
+
+  // Légende verrouillage
+  const nowM = new Date();
+  html += '<div style="font-size:11px;color:var(--muted);margin-top:10px;text-align:center">'
+    + '🔒 Les commandes des mois passés ne peuvent pas être supprimées'
+    + '</div>';
+
+  // Bouton export PDF
+  html += '<div style="margin-top:16px">'
+    + '<button id="btn-export-pdf" style="width:100%;padding:14px;background:#C9A84C;border:none;border-radius:12px;color:#0B1F3A;font-size:14px;font-weight:800;font-family:Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">'
+    + '📄 Exporter en PDF'
+    + '</button></div>';
+
+  document.getElementById('detail-vendeur-content').innerHTML = html;
+  goTo('s-vendeur-detail');
+
+  // Event delegation — évite les restrictions onclick dans innerHTML
+  setTimeout(() => {
+    // Boutons suppression
+    document.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = parseInt(this.getAttribute('data-del'));
+        supprimerCommande(id);
+      });
+    });
+    // Bouton PDF
+    const pdfBtn = document.getElementById('btn-export-pdf');
+    if (pdfBtn) pdfBtn.addEventListener('click', exportPDF);
+  }, 50);
+}
+
+function fermerDetailVendeur() {
+  goTo(detailVendeurRetour || 's-stats');
+}
+
+function exportPDF() {
+  const nom = detailVendeurNom;
+  const periode = MOIS[statsMois] + ' ' + statsAnnee;
+  let site = '';
+  Object.entries(SITES_DATA).forEach(([s, vs]) => { if (vs.includes(nom)) site = s; });
+
+  const vendeurOrders = orders.filter(o => {
+    if (o.vendeur !== nom) return false;
+    if (!o.dateISO) return false;
+    const d = new Date(o.dateISO);
+    return d.getMonth() === statsMois && d.getFullYear() === statsAnnee;
+  });
+
+  const totVN  = vendeurOrders.filter(o=>o.type==='VN').length;
+  const totVD  = vendeurOrders.filter(o=>o.type==='VD').length;
+  const totVO  = vendeurOrders.filter(o=>o.type==='VO').length;
+  const totVOM = vendeurOrders.filter(o=>o.type==='VOM').length;
+  const totFin = vendeurOrders.filter(o=>o.financement).length;
+  const totEnt = vendeurOrders.filter(o=>o.entretien).length;
+  const margeVO  = vendeurOrders.filter(o=>o.type==='VO' &&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeVOM = vendeurOrders.filter(o=>o.type==='VOM'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeTotal = margeVO + margeVOM;
+  const mc = margeTotal < 0 ? 'pdf-neg' : 'pdf-pos';
+
+  let rows = '';
+  vendeurOrders.forEach((o, i) => {
+    const vehicule = (o.type==='VO'||o.type==='VOM') ? (o.modele||'—') : (o.marque||'—');
+    let margeStr = '—', margeCls = '';
+    if ((o.type==='VO'||o.type==='VOM') && o.marge!==undefined && o.marge!=='') {
+      const mv = parseFloat(o.marge);
+      margeStr = mv.toLocaleString('fr-FR') + ' €';
+      margeCls = mv < 0 ? 'pdf-neg' : 'pdf-pos';
+    }
+    rows += '<tr>'
+      + '<td>' + (i+1) + '</td>'
+      + '<td><b>' + (o.client||'—') + '</b></td>'
+      + '<td><b>' + o.type + '</b></td>'
+      + '<td>' + vehicule + '</td>'
+      + '<td>' + (o.financement?'✅ Oui':'Non') + '</td>'
+      + '<td>' + (o.entretien?'✅ Oui':'Non') + '</td>'
+      + '<td class="' + margeCls + '">' + margeStr + '</td>'
+      + '</tr>';
+  });
+
+  const margeVOStr  = margeVO.toLocaleString('fr-FR') + ' €';
+  const margeVOMStr = margeVOM.toLocaleString('fr-FR') + ' €';
+  const margeTotStr = margeTotal.toLocaleString('fr-FR') + ' €';
+
+  const printHTML = `
+    <div class="pdf-header">
+      <div><div class="pdf-logo">LVA</div><div class="pdf-sub">Littoral Vendée Automobiles</div></div>
+      <div><div class="pdf-title">Récapitulatif des ventes</div><div class="pdf-periode">${periode}</div></div>
+    </div>
+    <div class="pdf-vendeur-name">${nom}</div>
+    <div class="pdf-site">${site}</div>
+    <div class="pdf-kpis">
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${vendeurOrders.length}</div><div class="pdf-kpi-label">Total</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totVN}</div><div class="pdf-kpi-label">VN</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totVD}</div><div class="pdf-kpi-label">VD</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totVO}</div><div class="pdf-kpi-label">VO</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totVOM}</div><div class="pdf-kpi-label">VOM</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totFin}</div><div class="pdf-kpi-label">Financement</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-num">${totEnt}</div><div class="pdf-kpi-label">Entretien</div></div>
+    </div>
+    <table class="pdf-table">
+      <thead><tr><th>#</th><th>Client</th><th>Type</th><th>Véhicule</th><th>Financement</th><th>Entretien</th><th>Marge VO</th></tr></thead>
+      <tbody>
+        ${rows}
+        <tr class="pdf-total">
+          <td colspan="4">TOTAL — ${vendeurOrders.length} vente${vendeurOrders.length>1?'s':''}</td>
+          <td>${totFin} ✅</td>
+          <td>${totEnt} ✅</td>
+          <td class="${mc}">${margeTotStr}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${(totVO+totVOM)>0 ? `<div style="border:1px solid #eee;border-radius:10px;padding:14px;font-size:12px">
+      <div style="font-weight:800;margin-bottom:8px;color:#0B1F3A">Détail marge VO</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0">
+        <span style="color:#555">VO Particuliers (${totVO})</span>
+        <span class="${margeVO<0?'pdf-neg':'pdf-pos'}">${margeVOStr}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0">
+        <span style="color:#555">VO Marchands (${totVOM})</span>
+        <span class="${margeVOM<0?'pdf-neg':'pdf-pos'}">${margeVOMStr}</span>
+      </div>
+    </div>` : ''}
+    <div class="pdf-footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} — LVA BDC App</div>`;
+
+  // Génère une page HTML complète et l'ouvre dans un nouvel onglet pour impression/PDF
+  const fullPage = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LVA — ${nom} — ${periode}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',Arial,sans-serif; background:white; color:#111; padding:28px 24px; max-width:800px; margin:0 auto; }
+  .pdf-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #C9A84C; padding-bottom:14px; margin-bottom:20px; }
+  .pdf-logo { font-size:28px; font-weight:900; color:#0B1F3A; letter-spacing:4px; }
+  .pdf-sub  { font-size:10px; color:#888; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .pdf-title { font-size:14px; font-weight:700; color:#0B1F3A; text-align:right; }
+  .pdf-periode { font-size:11px; color:#888; text-align:right; margin-top:2px; }
+  .pdf-vendeur-name { font-size:22px; font-weight:900; color:#0B1F3A; margin-bottom:3px; }
+  .pdf-site { font-size:12px; color:#666; margin-bottom:20px; }
+  .pdf-kpis { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .pdf-kpi { border:2px solid #e0e0e0; border-radius:10px; padding:10px 14px; text-align:center; min-width:70px; }
+  .pdf-kpi-num { font-size:22px; font-weight:900; color:#0B1F3A; }
+  .pdf-kpi-label { font-size:9px; color:#888; text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px; }
+  th { background:#0B1F3A; color:#C9A84C; padding:10px 12px; text-align:left; font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+  td { padding:10px 12px; border-bottom:1px solid #eee; color:#222; }
+  tr:nth-child(even) td { background:#f9f9f9; }
+  .total-row td { background:#0B1F3A !important; color:#C9A84C; font-weight:800; border-top:2px solid #C9A84C; }
+  .pos { color:#1DB87A; font-weight:700; }
+  .neg { color:#E03E3E; font-weight:700; }
+  .marge-detail { border:1px solid #eee; border-radius:10px; padding:14px 16px; font-size:13px; margin-bottom:20px; }
+  .marge-detail-title { font-weight:800; margin-bottom:10px; color:#0B1F3A; font-size:14px; }
+  .marge-line { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #f5f5f5; }
+  .marge-line:last-child { border-bottom:none; }
+  .pdf-footer { margin-top:30px; border-top:1px solid #eee; padding-top:10px; font-size:10px; color:#aaa; text-align:center; }
+  @media print { button { display:none !important; } }
+</style>
+</head>
+<body>
+  <div class="pdf-header">
+    <div><div class="pdf-logo">LVA</div><div class="pdf-sub">Littoral Vendée Automobiles</div></div>
+    <div><div class="pdf-title">Récapitulatif des ventes</div><div class="pdf-periode">${periode}</div></div>
+  </div>
+  <div class="pdf-vendeur-name">${nom}</div>
+  <div class="pdf-site">${site}</div>
+  <div class="pdf-kpis">
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${vendeurOrders.length}</div><div class="pdf-kpi-label">Total</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totVN}</div><div class="pdf-kpi-label">VN</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totVD}</div><div class="pdf-kpi-label">VD</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totVO}</div><div class="pdf-kpi-label">VO</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totVOM}</div><div class="pdf-kpi-label">VOM</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totFin}</div><div class="pdf-kpi-label">Financement</div></div>
+    <div class="pdf-kpi"><div class="pdf-kpi-num">${totEnt}</div><div class="pdf-kpi-label">Entretien</div></div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Client</th><th>Type</th><th>Véhicule</th><th>Financement</th><th>Entretien</th><th>Marge VO</th></tr></thead>
+    <tbody>${rows}
+      <tr class="total-row">
+        <td colspan="4">TOTAL — ${vendeurOrders.length} vente${vendeurOrders.length>1?'s':''}</td>
+        <td>${totFin} ✅</td>
+        <td>${totEnt} ✅</td>
+        <td class="${margeTotal<0?'neg':'pos'}">${margeTotStr}</td>
+      </tr>
+    </tbody>
+  </table>
+  ${(totVO+totVOM)>0 ? `<div class="marge-detail">
+    <div class="marge-detail-title">💰 Détail marge VO</div>
+    <div class="marge-line"><span>VO Particuliers (${totVO})</span><span class="${margeVO<0?'neg':'pos'}">${margeVOStr}</span></div>
+    <div class="marge-line"><span>VO Marchands (${totVOM})</span><span class="${margeVOM<0?'neg':'pos'}">${margeVOMStr}</span></div>
+    <div class="marge-line" style="font-weight:800"><span>Total marge VO</span><span class="${margeTotal<0?'neg':'pos'}">${margeTotStr}</span></div>
+  </div>` : ''}
+  <div style="text-align:center;margin:24px 0">
+    <button onclick="window.print()" style="padding:12px 32px;background:#C9A84C;border:none;border-radius:8px;font-size:15px;font-weight:800;cursor:pointer;color:#0B1F3A">
+      🖨️ Imprimer / Enregistrer en PDF
+    </button>
+  </div>
+  <div class="pdf-footer">Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} — LVA BDC App</div>
+</body>
+</html>`;
+
+  // Ouvre dans une nouvelle fenêtre et écrit directement le HTML
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.open();
+    win.document.write(fullPage);
+    win.document.close();
+  } else {
+    // Fallback si popup bloqué : télécharge en .html
+    const a = document.createElement('a');
+    a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(fullPage);
+    a.download = 'LVA_' + nom.replace(/ /g,'_') + '_' + periode.replace(/ /g,'_') + '.html';
+    a.click();
+  }
+}
+
+function attachFilterListeners() {
+  setTimeout(() => {
+    const fm = document.getElementById('filter-mois');
+    const fa = document.getElementById('filter-annee');
+    if (fm) fm.onchange = e => { statsMois = Number(e.target.value); renderStats(); };
+    if (fa) fa.onchange = e => { statsAnnee = Number(e.target.value); renderStats(); };
+  }, 50);
+}
+
+init();
+</script>
+</body>
+</html>
