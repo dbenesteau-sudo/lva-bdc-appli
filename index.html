@@ -736,6 +736,11 @@
 <!-- ════════════════════════════════════════════
      SCREEN 0 — ACCUEIL / CHOIX VENDEUR
 ════════════════════════════════════════════ -->
+<div id="firebase-status" style="background:#1a3550;color:#C9A84C;text-align:center;padding:10px;font-size:12px;font-weight:600;position:fixed;top:0;left:0;right:0;z-index:999">
+  ⏳ Connexion à la base de données...
+</div>
+<div style="height:36px"></div>
+
 <div class="screen active" id="s-vendeur">
   <div class="top-bar" style="justify-content:center;padding:12px 20px">
     <svg viewBox="0 0 480 100" xmlns="http://www.w3.org/2000/svg" style="width:240px;height:50px">
@@ -762,6 +767,9 @@
     <div class="vendor-grid" id="vendor-grid"></div>
   </div>
   <button class="fab" onclick="showStats()">📊 Stats</button>
+<button onclick="showAnnulMode()" style="position:fixed;bottom:24px;left:20px;background:#E03E3E;color:white;border:none;border-radius:50px;padding:12px 18px;font-size:12px;font-weight:800;font-family:Inter,sans-serif;cursor:pointer;z-index:100;box-shadow:0 4px 20px rgba(224,62,62,.4)">
+  ⚠️ Annulation
+</button>
 </div>
 
 <!-- ════════════════════════════════════════════
@@ -1163,9 +1171,89 @@ const FELICITATIONS = [
   { emoji:"🌟", title:"Superstar !", msg:"Voilà du beau travail. L'équipe LVA est fière de vous !" },
 ];
 
-const STORAGE_KEY = "lva_bdc_data_v3";
-let orders = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(orders)); }
+// ── FIREBASE CONFIG — remplacez par vos vraies valeurs ──────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCOQ0duF9D6CAXLokxA0I6qABD9Auz3_WQ",
+  authDomain: "lva-bdc-appli.firebaseapp.com",
+  projectId: "lva-bdc-appli",
+  storageBucket: "lva-bdc-appli.firebasestorage.app",
+  messagingSenderId: "515611635633",
+  appId: "1:515611635633:web:e7881650ecfea728c3d790"
+};
+
+// ── INIT FIREBASE ─────────────────────────────────────────────────────────────
+let db = null;
+let orders = [];
+let unsubscribe = null;
+
+async function initFirebase() {
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy }
+      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    const app = initializeApp(FIREBASE_CONFIG);
+    db = getFirestore(app);
+    window._fs = { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+
+    // Écoute temps réel de toutes les commandes
+    const q = query(collection(db, 'commandes'), orderBy('id', 'asc'));
+    unsubscribe = onSnapshot(q, (snapshot) => {
+      orders = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      // Rafraîchit l'affichage si on est sur une page stats ou détail
+      const statsScreen = document.getElementById('s-stats');
+      if (statsScreen && statsScreen.classList.contains('active')) {
+        renderStats();
+      }
+      const detailScreen = document.getElementById('s-vendeur-detail');
+      if (detailScreen && detailScreen.classList.contains('active') && detailVendeurNom) {
+        ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
+      }
+    }, (error) => {
+      console.error('Firebase error:', error);
+      showFirebaseError();
+    });
+
+    document.getElementById('firebase-status').style.display = 'none';
+    console.log('Firebase connecté ✅');
+  } catch(e) {
+    console.error('Init Firebase failed:', e);
+    showFirebaseError();
+  }
+}
+
+function showFirebaseError() {
+  const el = document.getElementById('firebase-status');
+  if (el) {
+    el.textContent = '⚠️ Connexion base de données impossible. Vérifiez votre connexion internet.';
+    el.style.background = '#3a0d0d';
+    el.style.color = '#E03E3E';
+  }
+}
+
+async function saveData(order) {
+  if (!db) { console.error('Firebase non initialisé'); return null; }
+  const { collection, addDoc } = window._fs;
+  try {
+    const docRef = await addDoc(collection(db, 'commandes'), order);
+    return docRef.id;
+  } catch(e) {
+    console.error('Erreur sauvegarde:', e);
+    alert('❌ Erreur de sauvegarde. Vérifiez votre connexion.');
+    return null;
+  }
+}
+
+async function deleteData(docId) {
+  if (!db || !docId) return;
+  const { doc, deleteDoc } = window._fs;
+  try {
+    await deleteDoc(doc(db, 'commandes', docId));
+  } catch(e) {
+    console.error('Erreur suppression:', e);
+    alert('❌ Erreur de suppression. Vérifiez votre connexion.');
+  }
+}
 
 function isMoisCourant(dateISO) {
   // Simple et fiable : on compare juste mois+année en local
@@ -1175,7 +1263,7 @@ function isMoisCourant(dateISO) {
   return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
 
-function supprimerCommande(id) {
+async function supprimerCommande(id) {
   const order = orders.find(o => o.id === id);
   if (!order) return;
   // Vérifie via l'id en priorité
@@ -1192,8 +1280,8 @@ function supprimerCommande(id) {
     return;
   }
   if (!confirm('Supprimer la commande de ' + (order.client||'ce client') + ' ?')) return;
-  orders = orders.filter(o => o.id !== id);
-  saveData();
+  await deleteData(order._docId);
+  // orders sera mis à jour automatiquement par onSnapshot
   ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
 }
 
@@ -1206,6 +1294,7 @@ function init() {
   buildMoisGrid();
   buildStatsNav();
   document.getElementById('marge-input').addEventListener('input', updateMargeIndicator);
+  initFirebase();
 }
 
 function buildVendeurGrid() {
@@ -1400,15 +1489,15 @@ function showRecap() {
   goTo('s-recap');
 }
 
-function validerCommande() {
+async function validerCommande() {
   const order = {
     ...current,
     date: new Date().toLocaleDateString('fr-FR'),
     dateISO: new Date().toISOString(),
     id: Date.now(),
   };
-  orders.push(order);
-  saveData();
+  const docId = await saveData(order);
+  if (!docId) return; // Erreur Firebase — on n'affiche pas les félicitations
 
   // Grand Chelem : stock + financement + entretien (VN ou VD)
   const isGrandChelem = (current.type === 'VN' || current.type === 'VD')
@@ -1427,6 +1516,54 @@ function validerCommande() {
     document.getElementById('congrats-msg').textContent = f.msg;
   }
   goTo('s-congrats');
+}
+
+// ── ANNULATION ───────────────────────────────────────────────────────────────
+let annulMode = false;
+let annulNum = '';
+let annulRaison = '';
+
+function showAnnulMode() {
+  annulMode = true;
+  // Crée un overlay d'annulation temporaire
+  const overlay = document.createElement('div');
+  overlay.id = 'annul-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:#0B1F3A;z-index:500;display:flex;flex-direction:column;align-items:center;padding:40px 24px;gap:16px;';
+  overlay.innerHTML = `
+    <div style="font-size:18px;font-weight:800;color:#E03E3E;margin-bottom:8px">⚠️ Déclarer une annulation</div>
+    <input id="annul-num-input" type="text" placeholder="N° de commande" style="width:100%;max-width:400px;background:#132B48;border:2px solid #2D4A6E;border-radius:12px;color:white;padding:14px 16px;font-size:16px;font-family:Inter,sans-serif;outline:none"/>
+    <input id="annul-raison-input" type="text" placeholder="Raison (optionnel)" style="width:100%;max-width:400px;background:#132B48;border:2px solid #2D4A6E;border-radius:12px;color:white;padding:14px 16px;font-size:16px;font-family:Inter,sans-serif;outline:none"/>
+    <button id="annul-confirm-btn" style="width:100%;max-width:400px;padding:16px;background:#E03E3E;border:none;border-radius:12px;color:white;font-size:16px;font-weight:800;font-family:Inter,sans-serif;cursor:pointer">Confirmer l'annulation</button>
+    <button id="annul-cancel-btn" style="width:100%;max-width:400px;padding:14px;background:transparent;border:2px solid #2D4A6E;border-radius:12px;color:#8A99AE;font-size:15px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer">Retour</button>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('annul-confirm-btn').addEventListener('click', enregistrerAnnulation);
+  document.getElementById('annul-cancel-btn').addEventListener('click', hideAnnulMode);
+}
+
+function hideAnnulMode() {
+  const overlay = document.getElementById('annul-overlay');
+  if (overlay) overlay.remove();
+  annulMode = false;
+}
+
+async function enregistrerAnnulation() {
+  const num = document.getElementById('annul-num-input').value.trim();
+  if (!num) { document.getElementById('annul-num-input').focus(); return; }
+  const raison = document.getElementById('annul-raison-input').value.trim();
+  const order = {
+    numeroCommande: num,
+    annulRaison: raison,
+    dateCommande: new Date().toLocaleDateString('fr-FR'),
+    dateISO: new Date().toISOString(),
+    id: Date.now(),
+    annulation: true,
+    vendeur: current.vendeur || '—',
+    site: current.site || '—',
+    type: '—',
+  };
+  await saveData(order);
+  hideAnnulMode();
 }
 
 function resetChamps() {
@@ -2090,3 +2227,4 @@ init();
 </script>
 </body>
 </html>
+
