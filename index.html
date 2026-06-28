@@ -1147,6 +1147,8 @@
 <!-- ════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
 const SITES_DATA = {
@@ -1168,7 +1170,7 @@ const FELICITATIONS = [
   { emoji:"🌟", title:"Superstar !", msg:"Voilà du beau travail. L'équipe LVA est fière de vous !" },
 ];
 
-// ── FIREBASE CONFIG — remplacez par vos vraies valeurs ──────────────────────
+// ── FIREBASE CONFIG ──────────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCOQ0duF9D6CAXLokxA0I6qABD9Auz3_WQ",
   authDomain: "lva-bdc-appli.firebaseapp.com",
@@ -1178,45 +1180,41 @@ const FIREBASE_CONFIG = {
   appId: "1:515611635633:web:e7881650ecfea728c3d790"
 };
 
-// ── INIT FIREBASE ─────────────────────────────────────────────────────────────
+// ── INIT FIREBASE ────────────────────────────────────────────────────────────
 let db = null;
 let orders = [];
 let unsubscribe = null;
 
 async function initFirebase() {
   try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy }
-      = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
 
-    const app = initializeApp(FIREBASE_CONFIG);
-    db = getFirestore(app);
-    window._fs = { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy };
+    unsubscribe = db.collection('commandes')
+      .orderBy('id', 'asc')
+      .onSnapshot((snapshot) => {
+        orders = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
 
-    // Écoute temps réel de toutes les commandes
-    const q = query(collection(db, 'commandes'), orderBy('id', 'asc'));
-    unsubscribe = onSnapshot(q, (snapshot) => {
-      orders = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
-      // Rafraîchit l'affichage si on est sur une page stats ou détail
-      const statsScreen = document.getElementById('s-stats');
-      if (statsScreen && statsScreen.classList.contains('active')) {
-        renderStats();
-      }
-      const detailScreen = document.getElementById('s-vendeur-detail');
-      if (detailScreen && detailScreen.classList.contains('active') && detailVendeurNom) {
-        ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
-      }
-    }, (error) => {
-      console.error('Firebase error:', error);
-      showFirebaseError();
-    });
+        const statsScreen = document.getElementById('s-stats');
+        if (statsScreen && statsScreen.classList.contains('active')) {
+          renderStats();
+        }
+
+        const detailScreen = document.getElementById('s-vendeur-detail');
+        if (detailScreen && detailScreen.classList.contains('active') && detailVendeurNom) {
+          ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
+        }
+      }, (error) => {
+        console.error('Firebase error:', error);
+        showFirebaseError();
+      });
 
     const statusEl = document.getElementById('firebase-status');
     statusEl.style.background = '#0d3a25';
     statusEl.style.color = '#1DB87A';
     statusEl.textContent = '✅ Connecté';
     setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
-    // S'assurer que la grille vendeur est bien construite
+
     buildVendeurGrid();
     console.log('Firebase connecté ✅');
   } catch(e) {
@@ -1235,10 +1233,13 @@ function showFirebaseError() {
 }
 
 async function saveData(order) {
-  if (!db) { console.error('Firebase non initialisé'); return null; }
-  const { collection, addDoc } = window._fs;
+  if (!db) {
+    console.error('Firebase non initialisé');
+    return null;
+  }
+
   try {
-    const docRef = await addDoc(collection(db, 'commandes'), order);
+    const docRef = await db.collection('commandes').add(order);
     return docRef.id;
   } catch(e) {
     console.error('Erreur sauvegarde:', e);
@@ -1249,45 +1250,14 @@ async function saveData(order) {
 
 async function deleteData(docId) {
   if (!db || !docId) return;
-  const { doc, deleteDoc } = window._fs;
+
   try {
-    await deleteDoc(doc(db, 'commandes', docId));
+    await db.collection('commandes').doc(docId).delete();
   } catch(e) {
     console.error('Erreur suppression:', e);
     alert('❌ Erreur de suppression. Vérifiez votre connexion.');
   }
 }
-
-function isMoisCourant(dateISO) {
-  // Simple et fiable : on compare juste mois+année en local
-  if (!dateISO) return false;
-  const d = new Date(dateISO);
-  const now = new Date();
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
-
-async function supprimerCommande(id) {
-  const order = orders.find(o => o.id === id);
-  if (!order) return;
-  // Vérifie via l'id en priorité
-  const now = new Date();
-  let peutSupprimer = false;
-  if (order.id && typeof order.id === 'number') {
-    const d = new Date(order.id);
-    peutSupprimer = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  } else if (order.dateISO) {
-    peutSupprimer = isMoisCourant(order.dateISO);
-  }
-  if (!peutSupprimer) {
-    alert('\u274C Impossible de modifier une commande d\'un mois pass\u00e9.');
-    return;
-  }
-  if (!confirm('Supprimer la commande de ' + (order.client||'ce client') + ' ?')) return;
-  await deleteData(order._docId);
-  // orders sera mis à jour automatiquement par onSnapshot
-  ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
-}
-
 // ── STATE ────────────────────────────────────────────────────────────────────
 let current = {};
 
