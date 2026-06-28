@@ -1981,15 +1981,16 @@ function ouvrirDetailVendeur(nom, retourScreen) {
       margeColor = mv < 0 ? '#E03E3E' : '#1DB87A';
     }
     // Utilise l'id (timestamp de création) — fiable même si dateISO est absent/UTC
-    const now2 = new Date();
-    let canDelete = false;
-    if (o.id && typeof o.id === 'number') {
-      const d = new Date(o.id);
-      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
-    } else if (o.dateISO) {
-      const d = new Date(o.dateISO);
-      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
-    }
+   const now2 = new Date();
+let canDelete = false;
+
+if (o.dateISO) {
+  const d = new Date(o.dateISO);
+  canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+} else if (o.id) {
+  const d = new Date(Number(o.id));
+  canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+}
     const deleteBtn = canDelete
       ? '<button data-del="' + o.id + '" style="background:#E03E3E;border:none;border-radius:6px;color:white;font-size:14px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif">🗑</button>'
       : '<span style="font-size:12px;color:var(--muted)">🔒</span>';
