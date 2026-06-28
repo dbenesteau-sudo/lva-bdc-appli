@@ -731,6 +731,9 @@
   }
   .ck { font-size: 14px; }
 </style>
+  <!-- Firebase CDN compat (fonctionne sans bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -1147,8 +1150,6 @@
 <!-- ════════════════════════════════════════
      JAVASCRIPT
 ════════════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
 const SITES_DATA = {
@@ -1170,7 +1171,7 @@ const FELICITATIONS = [
   { emoji:"🌟", title:"Superstar !", msg:"Voilà du beau travail. L'équipe LVA est fière de vous !" },
 ];
 
-// ── FIREBASE CONFIG ──────────────────────────────────────────────────────────
+// ── FIREBASE CONFIG — remplacez par vos vraies valeurs ──────────────────────
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCOQ0duF9D6CAXLokxA0I6qABD9Auz3_WQ",
   authDomain: "lva-bdc-appli.firebaseapp.com",
@@ -1180,42 +1181,36 @@ const FIREBASE_CONFIG = {
   appId: "1:515611635633:web:e7881650ecfea728c3d790"
 };
 
-// ── INIT FIREBASE ────────────────────────────────────────────────────────────
+// ── INIT FIREBASE ─────────────────────────────────────────────────────────────
 let db = null;
 let orders = [];
-let unsubscribe = null;
 
-async function initFirebase() {
+function initFirebase() {
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
+    const app = firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
 
-    unsubscribe = db.collection('commandes')
-      .orderBy('id', 'asc')
-      .onSnapshot((snapshot) => {
-        orders = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
-
-        const statsScreen = document.getElementById('s-stats');
-        if (statsScreen && statsScreen.classList.contains('active')) {
-          renderStats();
-        }
-
-        const detailScreen = document.getElementById('s-vendeur-detail');
-        if (detailScreen && detailScreen.classList.contains('active') && detailVendeurNom) {
-          ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
-        }
-      }, (error) => {
-        console.error('Firebase error:', error);
-        showFirebaseError();
-      });
+    // Écoute temps réel
+    db.collection('commandes').orderBy('id', 'asc').onSnapshot((snapshot) => {
+      orders = snapshot.docs.map(d => ({ ...d.data(), _docId: d.id }));
+      const statsScreen = document.getElementById('s-stats');
+      if (statsScreen && statsScreen.classList.contains('active')) {
+        renderStats();
+      }
+      const detailScreen = document.getElementById('s-vendeur-detail');
+      if (detailScreen && detailScreen.classList.contains('active') && detailVendeurNom) {
+        ouvrirDetailVendeur(detailVendeurNom, detailVendeurRetour);
+      }
+    }, (error) => {
+      console.error('Firebase error:', error);
+      showFirebaseError();
+    });
 
     const statusEl = document.getElementById('firebase-status');
     statusEl.style.background = '#0d3a25';
     statusEl.style.color = '#1DB87A';
     statusEl.textContent = '✅ Connecté';
     setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
-
-    buildVendeurGrid();
     console.log('Firebase connecté ✅');
   } catch(e) {
     console.error('Init Firebase failed:', e);
@@ -1233,11 +1228,7 @@ function showFirebaseError() {
 }
 
 async function saveData(order) {
-  if (!db) {
-    console.error('Firebase non initialisé');
-    return null;
-  }
-
+  if (!db) { console.error('Firebase non initialisé'); return null; }
   try {
     const docRef = await db.collection('commandes').add(order);
     return docRef.id;
@@ -1250,7 +1241,6 @@ async function saveData(order) {
 
 async function deleteData(docId) {
   if (!db || !docId) return;
-
   try {
     await db.collection('commandes').doc(docId).delete();
   } catch(e) {
@@ -1258,6 +1248,37 @@ async function deleteData(docId) {
     alert('❌ Erreur de suppression. Vérifiez votre connexion.');
   }
 }
+
+function isMoisCourant(dateISO) {
+  // Simple et fiable : on compare juste mois+année en local
+  if (!dateISO) return false;
+  const d = new Date(dateISO);
+  const now = new Date();
+  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+async function supprimerCommande(docId) {
+  // docId = _docId Firebase passé directement
+  const order = orders.find(o => o._docId === docId);
+  if (!order) { alert('Commande introuvable.'); return; }
+
+  // Vérif mois courant
+  const now = new Date();
+  let peutSupprimer = false;
+  if (order.id && typeof order.id === 'number') {
+    const d = new Date(order.id);
+    peutSupprimer = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  } else if (order.dateISO) {
+    peutSupprimer = isMoisCourant(order.dateISO);
+  }
+  if (!peutSupprimer) {
+    alert('❌ Impossible de modifier une commande d\'un mois passé.');
+    return;
+  }
+  if (!confirm('Supprimer la commande de ' + (order.client||'ce client') + ' ?')) return;
+  await deleteData(docId);
+}
+
 // ── STATE ────────────────────────────────────────────────────────────────────
 let current = {};
 
@@ -1981,18 +2002,17 @@ function ouvrirDetailVendeur(nom, retourScreen) {
       margeColor = mv < 0 ? '#E03E3E' : '#1DB87A';
     }
     // Utilise l'id (timestamp de création) — fiable même si dateISO est absent/UTC
-   const now2 = new Date();
-let canDelete = false;
-
-if (o.dateISO) {
-  const d = new Date(o.dateISO);
-  canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
-} else if (o.id) {
-  const d = new Date(Number(o.id));
-  canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
-}
+    const now2 = new Date();
+    let canDelete = false;
+    if (o.id && typeof o.id === 'number') {
+      const d = new Date(o.id);
+      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+    } else if (o.dateISO) {
+      const d = new Date(o.dateISO);
+      canDelete = d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+    }
     const deleteBtn = canDelete
-      ? '<button data-del="' + o.id + '" style="background:#E03E3E;border:none;border-radius:6px;color:white;font-size:14px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif">🗑</button>'
+      ? '<button data-docid="' + (o._docId||'') + '" style="background:#E03E3E;border:none;border-radius:6px;color:white;font-size:14px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:Inter,sans-serif">🗑</button>'
       : '<span style="font-size:12px;color:var(--muted)">🔒</span>';
     html += '<tr>'
       + '<td style="font-weight:700;color:#111;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (o.client||'—') + '</td>'
@@ -2034,11 +2054,11 @@ if (o.dateISO) {
 
   // Event delegation — évite les restrictions onclick dans innerHTML
   setTimeout(() => {
-    // Boutons suppression
-    document.querySelectorAll('[data-del]').forEach(btn => {
+    // Boutons suppression — utilise _docId Firebase
+    document.querySelectorAll('[data-docid]').forEach(btn => {
       btn.addEventListener('click', function() {
-        const id = parseInt(this.getAttribute('data-del'));
-        supprimerCommande(id);
+        const docId = this.getAttribute('data-docid');
+        if (docId) supprimerCommande(docId);
       });
     });
     // Bouton PDF
@@ -2276,4 +2296,3 @@ init();
 </script>
 </body>
 </html>
-
