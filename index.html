@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>LVA — Saisie Commandes</title>
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" type="image/png" href="apple-touch-icon.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
@@ -1157,7 +1155,7 @@
 const SITES_DATA = {
   "Les Sables d'Olonne": ["Pierre-Emmanuel Cottu", "Nicolas Rigollage", "Vente Direction"],
   "Challans": ["Stéphane Camboni","Ronan Legeard","Louis Guillouche","Florian Lemoine","Romain Deuil","Benjamin Rousseau","Vente Direction"],
-  "La Roche sur Yon": ["David Fortineau","Pascal Bonnin","Nicolas Reigner","Pascal Chauveau","Bastien Durantin","Kalvin Le Hingrat","Vente Direction"],
+  "La Roche sur Yon": ["David Fortineau","Pascal Bonnin","Nicolas Reigner","Pascal Chauveau","Bastien Durantin","Kalvin Le Hingrat","David Roland","Jolann Briand","Vente Direction"],
 };
 
 const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -1903,14 +1901,21 @@ function ouvrirDetailVendeur(nom, retourScreen) {
   document.getElementById('detail-vendeur-site').textContent = site;
   document.getElementById('detail-vendeur-periode').textContent = periode;
 
-  const totVN  = vendeurOrders.filter(o=>o.type==='VN').length;
-  const totVD  = vendeurOrders.filter(o=>o.type==='VD').length;
-  const totVO  = vendeurOrders.filter(o=>o.type==='VO').length;
-  const totFin = vendeurOrders.filter(o=>o.financement).length;
-  const totEnt = vendeurOrders.filter(o=>o.entretien).length;
-  const totMarge = vendeurOrders
-    .filter(o=>o.type==='VO' && o.marge!==undefined)
+  const totVN   = vendeurOrders.filter(o=>o.type==='VN').length;
+  const totVD   = vendeurOrders.filter(o=>o.type==='VD').length;
+  const totVO   = vendeurOrders.filter(o=>o.type==='VO').length;
+  const totVOM  = vendeurOrders.filter(o=>o.type==='VOM').length;
+  const totVOall = totVO + totVOM;
+  const totFin  = vendeurOrders.filter(o=>o.financement).length;
+  const totEnt  = vendeurOrders.filter(o=>o.entretien).length;
+  // Marge = VO particuliers + VOM
+  const margeVOpart = vendeurOrders
+    .filter(o=>o.type==='VO' && o.marge!==undefined && o.marge!==null && o.marge!=='')
     .reduce((s,o)=>s+parseFloat(o.marge||0), 0);
+  const margeVOM = vendeurOrders
+    .filter(o=>o.type==='VOM' && o.marge!==undefined && o.marge!==null && o.marge!=='')
+    .reduce((s,o)=>s+parseFloat(o.marge||0), 0);
+  const totMarge = margeVOpart + margeVOM;
   const mc = totMarge < 0 ? '#E03E3E' : '#1DB87A';
 
   // ── En-tête vendeur
@@ -1930,14 +1935,16 @@ function ouvrirDetailVendeur(nom, retourScreen) {
     return;
   }
 
-  // ── Calcul ratios
-  const vnvdCount  = totVN + totVD;
-  const ratioFinVNVD = vnvdCount > 0 ? Math.round(totFin / vnvdCount * 100) : 0;
-  // Financement sur VO particuliers seulement
-  const finVO      = vendeurOrders.filter(o=>o.type==='VO'&&o.financement).length;
-  const ratioFinVO = totVO > 0 ? Math.round(finVO / totVO * 100) : 0;
-  // Entretien sur VN+VD seulement
-  const entVNVD    = vendeurOrders.filter(o=>(o.type==='VN'||o.type==='VD')&&o.entretien).length;
+  // ── Calcul ratios — chaque ratio sur sa propre population
+  const vnvdCount    = totVN + totVD;
+  // Financements sur VN+VD uniquement
+  const finVNVD      = vendeurOrders.filter(o=>(o.type==='VN'||o.type==='VD')&&o.financement).length;
+  const ratioFinVNVD = vnvdCount > 0 ? Math.round(finVNVD / vnvdCount * 100) : 0;
+  // Financements sur VO particuliers uniquement
+  const finVO        = vendeurOrders.filter(o=>o.type==='VO'&&o.financement).length;
+  const ratioFinVO   = totVO > 0 ? Math.round(finVO / totVO * 100) : 0;
+  // Entretiens sur VN+VD uniquement
+  const entVNVD      = vendeurOrders.filter(o=>(o.type==='VN'||o.type==='VD')&&o.entretien).length;
   const ratioEntVNVD = vnvdCount > 0 ? Math.round(entVNVD / vnvdCount * 100) : 0;
 
   // ── KPIs
@@ -1945,12 +1952,31 @@ function ouvrirDetailVendeur(nom, retourScreen) {
     + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#5aaeff">' + totVN + '</div><div class="detail-kpi-label">VN</div></div>'
     + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#C9A84C">' + totVD + '</div><div class="detail-kpi-label">VD</div></div>'
     + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#1DB87A">' + totVO + '</div><div class="detail-kpi-label">VO</div></div>'
+    + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#b388ff">' + totVOM + '</div><div class="detail-kpi-label">VOM</div></div>'
     + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#1DB87A">' + totFin + '</div><div class="detail-kpi-label">Fin.</div></div>'
     + '<div class="detail-kpi"><div class="detail-kpi-num" style="color:#7EB8F5">' + totEnt + '</div><div class="detail-kpi-label">Entretien</div></div>'
-    + '<div class="detail-kpi" style="grid-column:span 3;border-color:' + mc + '">'
-    + '<div class="detail-kpi-num" style="color:' + mc + ';font-size:18px">' + totMarge.toLocaleString('fr-FR') + ' €</div>'
-    + '<div class="detail-kpi-label">Marge VO</div></div>'
     + '</div>';
+
+  // ── Marge VO détaillée (seulement si VO ou VOM)
+  if (totVOall > 0) {
+    const mcPart = margeVOpart < 0 ? '#E03E3E' : '#1DB87A';
+    const mcVOM  = margeVOM    < 0 ? '#E03E3E' : '#b388ff';
+    html += '<div style="background:#0d2238;border:1px solid ' + mc + ';border-radius:12px;padding:14px 16px;margin-bottom:14px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+      + '<span style="font-size:11px;color:#C9A84C;font-weight:800;letter-spacing:1px">💰 MARGE VO GLOBALE</span>'
+      + '<span style="font-size:20px;font-weight:900;color:' + mc + '">' + totMarge.toLocaleString('fr-FR') + ' €</span>'
+      + '</div>'
+      + '<div style="height:1px;background:#1a3050;margin-bottom:10px"></div>'
+      + (totVO > 0 ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">'
+        + '<span style="color:#8A99AE">VO Particuliers (' + totVO + ')</span>'
+        + '<span style="font-weight:700;color:' + mcPart + '">' + margeVOpart.toLocaleString('fr-FR') + ' €</span>'
+        + '</div>' : '')
+      + (totVOM > 0 ? '<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">'
+        + '<span style="color:#8A99AE">VO Marchands (' + totVOM + ')</span>'
+        + '<span style="font-weight:700;color:' + mcVOM + '">' + margeVOM.toLocaleString('fr-FR') + ' €</span>'
+        + '</div>' : '')
+      + '</div>';
+  }
 
   // ── RATIOS
   html += '<div style="background:#0d2238;border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1px solid #1a3050">'
@@ -1961,7 +1987,7 @@ function ouvrirDetailVendeur(nom, retourScreen) {
     + '<div>'
     + '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
     + '<span style="font-size:12px;color:#8A99AE">💳 Financement VN+VD</span>'
-    + '<span style="font-size:13px;font-weight:800;color:' + (ratioFinVNVD>=50?'#1DB87A':'#E03E3E') + '">' + ratioFinVNVD + '% <span style="font-size:10px;color:#8A99AE">(' + totFin + '/' + vnvdCount + ')</span></span>'
+    + '<span style="font-size:13px;font-weight:800;color:' + (ratioFinVNVD>=50?'#1DB87A':'#E03E3E') + '">' + ratioFinVNVD + '% <span style="font-size:10px;color:#8A99AE">(' + finVNVD + '/' + vnvdCount + ')</span></span>'
     + '</div>'
     + '<div style="height:6px;background:#132B48;border-radius:3px"><div style="height:6px;width:' + ratioFinVNVD + '%;background:' + (ratioFinVNVD>=50?'#1DB87A':'#E03E3E') + ';border-radius:3px;transition:width .5s"></div></div>'
     + '</div>'
@@ -2092,8 +2118,8 @@ function exportPDF() {
   const totVOM = vendeurOrders.filter(o=>o.type==='VOM').length;
   const totFin = vendeurOrders.filter(o=>o.financement).length;
   const totEnt = vendeurOrders.filter(o=>o.entretien).length;
-  const margeVO  = vendeurOrders.filter(o=>o.type==='VO' &&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
-  const margeVOM = vendeurOrders.filter(o=>o.type==='VOM'&&o.marge!==undefined).reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeVO  = vendeurOrders.filter(o=>o.type==='VO'  && o.marge!==undefined && o.marge!==null && o.marge!=='').reduce((s,o)=>s+parseFloat(o.marge||0),0);
+  const margeVOM = vendeurOrders.filter(o=>o.type==='VOM' && o.marge!==undefined && o.marge!==null && o.marge!=='').reduce((s,o)=>s+parseFloat(o.marge||0),0);
   const margeTotal = margeVO + margeVOM;
   const mc = margeTotal < 0 ? 'pdf-neg' : 'pdf-pos';
 
