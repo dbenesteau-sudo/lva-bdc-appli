@@ -1155,8 +1155,12 @@
 const SITES_DATA = {
   "Les Sables d'Olonne": ["Pierre-Emmanuel Cottu", "Nicolas Rigollage", "Vente Direction"],
   "Challans": ["Stéphane Camboni","Ronan Legeard","Louis Guillouche","Florian Lemoine","Romain Deuil","Benjamin Rousseau","Vente Direction"],
-  "La Roche sur Yon": ["David Fortineau","Pascal Bonnin","Nicolas Reigner","Pascal Chauveau","Bastien Durantin","Kalvin Le Hingrat","David Roland","Jolann Briand","Vente Direction"],
+  "La Roche sur Yon": ["David Fortineau","Pascal Bonnin","Nicolas Reigner","Pascal Chauveau","Bastien Durantin","Kalvin Le Hingrat","David Roland","Jolann Briand","Théo Carreau","Vente Direction"],
 };
+
+// Vendeurs partis : leurs commandes restent dans toutes les stats,
+// mais ils n'apparaissent plus sur l'écran de saisie.
+const VENDEURS_INACTIFS = ["Pascal Bonnin"];
 
 const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
@@ -1301,7 +1305,7 @@ function buildVendeurGrid() {
     label.className = 'vendor-site-label';
     label.textContent = site;
     grid.appendChild(label);
-    vendeurs.forEach(v => {
+    vendeurs.filter(v => !VENDEURS_INACTIFS.includes(v)).forEach(v => {
       const btn = document.createElement('button');
       btn.className = 'vendor-btn';
       btn.textContent = v;
@@ -1832,7 +1836,7 @@ function renderStats() {
     });
   } else {
     // Vue site — par vendeur
-    const vendeurs = SITES_DATA[statsSite] || [];
+    const vendeurs = (SITES_DATA[statsSite] || []).filter(v => !VENDEURS_INACTIFS.includes(v) || filtered.some(o => o.vendeur === v));
     html += `<div class="section-title-stats">👥 Vendeurs</div>`;
     vendeurs.forEach(v => {
       const vo = filtered.filter(o=>o.vendeur===v);
